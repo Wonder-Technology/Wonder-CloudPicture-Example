@@ -1,0 +1,21 @@
+{
+    "name": "wonder-cloud-picture-example",
+    "version": "0.0.1",
+    "description": "",
+    "homepage": "",
+    "license": "MIT",
+    "main": "",
+    "scripts": {
+        "watch": "bsb -clean-world -make-world -w",
+        "build": "bsb -clean-world -make-world",
+        "runTest": "node lib/js/src/Main.bs.js"
+    },
+    "devDependencies": {
+        "bs-platform": "^8.2.0"
+    },
+    "dependencies": {
+        "wonder-bs-most": "^0.0.3",
+        "webgpu": "0.1.16",
+        "wonder.js": "2.0.0-alpha.2.2"
+    }
+}
