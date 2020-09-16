@@ -801,7 +801,7 @@ module Window = {
   [@bs.module "webgpu"] [@bs.new]
   external make: descriptor => t = "WebGPUWindow";
   [@bs.send.pipe: t] external getContext: ([@bs.as "webgpu"] _) => Context.t;
-  [@bs.send.pipe: t] external pollEvents: unit => unit;
+  [@bs.send.pipe: t] external pollEvents:  unit;
   [@bs.send.pipe: t] external shouldClose: bool;
 
   [@bs.get] external getWidth: t => int = "width";

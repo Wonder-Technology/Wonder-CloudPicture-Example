@@ -16,6 +16,6 @@
     "dependencies": {
         "wonder-bs-most": "^0.0.3",
         "webgpu": "0.1.16",
-        "wonder.js": "2.0.0-alpha.2.2"
+        "wonder.js": "2.0.0-alpha.3"
     }
 }
