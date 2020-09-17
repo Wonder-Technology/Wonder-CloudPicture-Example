@@ -4,6 +4,8 @@
 
 # Prepare
 
+- Your GPU should be at least Nvdia RTX 2060 
+
 - Your OS should be Win10
 
 - Please open [here](https://developer.nvidia.com/vulkan-driver) and jump to "Vulkan Beta Driver Downloads" to download and install the newest Vulkan Driver(its version should >= Windows 451.74)
