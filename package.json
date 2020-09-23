@@ -14,8 +14,10 @@
         "bs-platform": "^8.2.0"
     },
     "dependencies": {
-        "wonder-bs-most": "^0.0.3",
         "webgpu": "0.1.16",
+        "wonder-bs-jest": "^0.3.0",
+        "wonder-bs-most": "^0.0.3",
+        "wonder-bs-sinon": "^0.1.9",
         "wonder.js": "2.0.0-alpha.3"
     }
 }
