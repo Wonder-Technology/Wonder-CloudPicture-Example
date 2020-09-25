@@ -120,6 +120,7 @@ let _createWebGPUDp = (): Wonderjs.IWebGPUCoreDp.webgpuCore => {
       },
     },
     commandEncoder: {
+      copyBufferToTexture: CommandEncoder.copyBufferToTexture,
       beginRenderPass: CommandEncoder.beginRenderPass,
       beginComputePass: CommandEncoder.beginComputePass,
       finish: CommandEncoder.finish,
@@ -162,6 +163,10 @@ let _createWebGPUDp = (): Wonderjs.IWebGPUCoreDp.webgpuCore => {
 
       v;
     },
+    capacity:{
+getTextureArrayLayerSize: () => (2048, 2048),
+getTextureArrayMaxLayerCount: () => 2048
+    }
   };
 };
 
@@ -417,7 +422,7 @@ let _createPlane =
   ->ResultUtils.getExnSuccessValueIgnore;
 
   let geometry =
-    Wonderjs.GeometryRunAPI.createPlaneGeometry()
+    Wonderjs.GeometryRunAPI.createPlaneGeometry(1,1,1,1)
     ->ResultUtils.getExnSuccessValue;
 
   Wonderjs.GameObjectRunAPI.addGeometry(gameObject, geometry)
@@ -460,20 +465,74 @@ let _buildScene = () => {
   let _ =
     _createSphere((5.0, 0.0, 5.0), ((0.5, 0.5, 0.1), 0.95, 0.3, 0.7));
 
-  let _ =
-    _createSphere(((-5.0), 0.0, 5.0), ((0.0, 1.0, 0.1), 0.2, 0.1, 0.5));
+  // let _ =
+  //   _createSphere(((-5.0), 0.0, 5.0), ((0.0, 1.0, 0.1), 0.2, 0.1, 0.5));
 
-  let _ =
-    _createPlane(
-      ((0., (-10.), (-5.)), (0., 0., 0.)),
-      ((0., 0., 1.), 0.95, 0.6, 0.3),
-    );
+// TODO fix plane
+  // let _ =
+  //   _createPlane(
+  //     ((0., (-10.), (-5.)), (0., 0., 0.)),
+  //     ((0., 0., 1.), 0.95, 0.6, 0.3),
+  //   );
   ();
+};
+
+let _readPNGFile = [%bs.raw
+  {|
+   (buf) =>{
+      var loadpng = require("@cwasm/loadpng");
+
+      return loadpng.decode(buf);
+   }
+|}
+];
+
+let _readJPEGFile = [%bs.raw
+  {|
+   (buf) =>{
+      var jpegturbo = require("@cwasm/jpeg-turbo");
+
+      return jpegturbo.decode(buf);
+   }
+|}
+];
+
+let _isPNGFile = buffer => {
+  let viewU8 = Js.Typed_array.Uint8Array.fromBuffer(buffer);
+  let offset = 0x0;
+
+  Js.Typed_array.Uint8Array.unsafe_get(viewU8, offset, ) === 0x89
+  && Js.Typed_array.Uint8Array.unsafe_get(viewU8, offset + 1, ) === 0x50
+  && Js.Typed_array.Uint8Array.unsafe_get(viewU8, offset + 2, ) === 0x4E
+  && Js.Typed_array.Uint8Array.unsafe_get(viewU8, offset + 3, ) === 0x47;
+};
+
+let _isJPEGFile = buffer => {
+  let viewU8 = Js.Typed_array.Uint8Array.fromBuffer(buffer);
+  let offset = 0x0;
+
+  Js.Typed_array.Uint8Array.unsafe_get(viewU8, offset) === 0xFF
+  && Js.Typed_array.Uint8Array.unsafe_get(viewU8, offset + 1) === 0xD8
+  && Js.Typed_array.Uint8Array.unsafe_get(viewU8, offset + 2) === 0xFF
+  && Js.Typed_array.Uint8Array.unsafe_get(viewU8, offset + 3) === 0xE0;
+};
+
+let _readImageFile = path => {
+  let buf = Node.readFileSync(path);
+
+  _isPNGFile(buf)
+    ? _readPNGFile(buf)->Wonderjs.Result.succeed
+    : {
+      _isJPEGFile(buf)
+        ? _readJPEGFile(buf)->Wonderjs.Result.succeed
+        : Wonderjs.Result.failWith("Cannot process image file $path");
+    };
 };
 
 let start = () => {
   Wonderjs.OtherConfigDpCPAPI.set({getIsDebug: () => true});
   Wonderjs.TimeDpCPAPI.set({getNow: () => Performance.now()});
+  Wonderjs.NetworkDpCPAPI.set({readImageFile: _readImageFile});
 
   Wonderjs.WebGPUCoreDpRunAPI.set(_createWebGPUDp());
   Wonderjs.WebGPURayTracingDpRunAPI.set(_createWebGPURayTracingDp());
@@ -489,29 +548,44 @@ let start = () => {
     ->_getStreamFromTuple;
 
   stream
-  ->WonderBsMost.Most.drain
-  ->Js.Promise.then_(() => {Js.log("init")->Js.Promise.resolve}, _)
-  ->Js.Promise.then_(
-      () => {
-        let rec _onFrame = () => {
-          let stream =
+  -> WonderBsMost.Most.concat(
             Wonderjs.DirectorCPAPI.update()
             ->Wonderjs.Result.handleFail(ResultUtils.handleFail)
-            ->_getStreamFromTuple;
-
-          let stream =
-            stream->WonderBsMost.Most.concat(
-                      Wonderjs.DirectorCPAPI.render()
+            ->_getStreamFromTuple, _
+  )
+  ->WonderBsMost.Most.drain
+  ->Js.Promise.then_(() => {Js.log("init and update")->Js.Promise.resolve}, _)
+          ->Js.Promise.catch(
+              e => {
+                Js.log(e);
+                e->Obj.magic->Js.Promise.reject;
+              },
+              _,
+            )
+  ->Js.Promise.then_(
+      () => {
+          let stream = Wonderjs.DirectorCPAPI.render()
                       ->Wonderjs.Result.handleFail(ResultUtils.handleFail)
-                      ->_getStreamFromTuple,
-                      _,
-                    );
+                      ->_getStreamFromTuple;
+
+        let rec _onFrame = () => {
+          // let stream =
+          //   Wonderjs.DirectorCPAPI.update()
+          //   ->Wonderjs.Result.handleFail(ResultUtils.handleFail)
+          //   ->_getStreamFromTuple;
+
+            // stream->WonderBsMost.Most.concat(
+            //           Wonderjs.DirectorCPAPI.render()
+            //           ->Wonderjs.Result.handleFail(ResultUtils.handleFail)
+            //           ->_getStreamFromTuple,
+            //           _,
+            //         );
 
           stream
           ->WonderBsMost.Most.drain
           ->Js.Promise.then_(
               () => {
-                Js.log("finish one frame");
+                // Js.log("finish one frame");
 
                 _onFrame()->Js.Promise.resolve;
               },

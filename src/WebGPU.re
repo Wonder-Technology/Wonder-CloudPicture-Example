@@ -711,6 +711,38 @@ module CommandEncoder = {
 //   };
   type descriptor = Wonderjs.IWebGPUCoreDp.commandEncoderDescriptor;
 
+//   type bufferCopyView = {
+//     .
+// "buffer": Buffer.t,
+// "bytesPerRow":int,
+// "arrayLayer":int,
+// "mipLevel":int,
+// "textureArrayLayerHeight":int
+//   };
+
+//   type origin3D = {
+//     .
+//     "x":int,
+//     "y":int,
+//     "z":int,
+//   };
+
+//   type textureCopyView = {
+//     .
+// "texture":Texture.t,
+// "arrayLayer":int,
+// "mipLevel":int,
+// "origin": origin3D
+//   };
+
+
+  type bufferCopyView = Wonderjs.IWebGPUCoreDp.bufferCopyView;
+
+  type textureCopyView = Wonderjs.IWebGPUCoreDp.textureCopyView;
+
+  [@bs.send.pipe: t]
+  external copyBufferToTexture:
+    ( bufferCopyView,textureCopyView, Extend3D.t  ) => unit;
   [@bs.send.pipe: t]
   external beginRenderPass:
     PassEncoder.Render.descriptor => PassEncoder.Render.t;
