@@ -163,10 +163,10 @@ let _createWebGPUDp = (): Wonderjs.IWebGPUCoreDp.webgpuCore => {
 
       v;
     },
-    capacity:{
-getTextureArrayLayerSize: () => (2048, 2048),
-getTextureArrayMaxLayerCount: () => 2048
-    }
+    capacity: {
+      getTextureArrayLayerSize: () => (2048, 2048),
+      getTextureArrayMaxLayerCount: () => 2048,
+    },
   };
 };
 
@@ -257,6 +257,8 @@ let _createCamera = () => {
   Wonderjs.TransformRunAPI.setLocalPosition(
     transform,
     (0.1, 1.1, 20.)->Wonderjs.PositionVO.create,
+    // (0.1, 1.1, 50.)->Wonderjs.PositionVO.create,
+    // (0.1, 1.1, 50.)->Wonderjs.PositionVO.create,
   )
   ->ResultUtils.getExnSuccessValueIgnore;
 
@@ -332,33 +334,19 @@ let _createDirectionLight = () => {
   gameObject;
 };
 
-let _createSphere =
-    (localPosition, (diffuse, specular, metalness, roughness)) => {
-  let gameObject =
-    Wonderjs.GameObjectRunAPI.create()->ResultUtils.getExnSuccessValue;
-
-  let transform =
-    Wonderjs.GameObjectRunAPI.getTransform(gameObject)
-    ->Wonderjs.OptionSt.getExn;
-
-  Wonderjs.TransformRunAPI.setLocalPosition(
-    transform,
-    localPosition->Wonderjs.PositionVO.create,
-  )
-  ->ResultUtils.getExnSuccessValueIgnore;
-
-  let radius = 2.;
-  let bands = 20;
-  let geometry =
-    Wonderjs.GeometryRunAPI.createSphereGeometry(radius, bands)
-    ->ResultUtils.getExnSuccessValue;
-
-  Wonderjs.GameObjectRunAPI.addGeometry(gameObject, geometry)
-  ->ResultUtils.getExnSuccessValueIgnore;
-
-  let material =
-    Wonderjs.PBRMaterialRunAPI.create()->ResultUtils.getExnSuccessValue;
-
+let _setPBRMaterialData =
+    (
+      material,
+      (
+        (diffuse, specular, metalness, roughness),
+        (
+          diffuseMapImageIdOpt,
+          normalMapImageIdOpt,
+          emissionMapImageIdOpt,
+          channelRoughnessMetallicMapImageIdOpt,
+        ),
+      ),
+    ) => {
   Wonderjs.PBRMaterialRunAPI.setDiffuseColor(
     material,
     diffuse->Wonderjs.Color3VO.create->Wonderjs.DiffuseVO.create,
@@ -380,17 +368,44 @@ let _createSphere =
   )
   ->ResultUtils.getExnSuccessValueIgnore;
 
-  Wonderjs.GameObjectRunAPI.addPBRMaterial(gameObject, material)
-  ->ResultUtils.getExnSuccessValueIgnore;
+  switch (diffuseMapImageIdOpt) {
+  | None => ()
+  | Some(mapImageId) =>
+    Wonderjs.PBRMaterialRunAPI.setDiffuseMapImageId(
+      material,
+      mapImageId->Wonderjs.ImageIdVO.create,
+    )
+  };
 
-  gameObject;
+  switch (normalMapImageIdOpt) {
+  | None => ()
+  | Some(mapImageId) =>
+    Wonderjs.PBRMaterialRunAPI.setNormalMapImageId(
+      material,
+      mapImageId->Wonderjs.ImageIdVO.create,
+    )
+  };
+
+  switch (emissionMapImageIdOpt) {
+  | None => ()
+  | Some(mapImageId) =>
+    Wonderjs.PBRMaterialRunAPI.setEmissionMapImageId(
+      material,
+      mapImageId->Wonderjs.ImageIdVO.create,
+    )
+  };
+
+  switch (channelRoughnessMetallicMapImageIdOpt) {
+  | None => ()
+  | Some(mapImageId) =>
+    Wonderjs.PBRMaterialRunAPI.setChannelRoughnessMetallicMapImageId(
+      material,
+      mapImageId->Wonderjs.ImageIdVO.create,
+    )
+  };
 };
 
-let _createPlane =
-    (
-      (localPosition, localEulerAngles),
-      (diffuse, specular, metalness, roughness),
-    ) => {
+let _createSphere = ((localPosition, localEulerAngles), pbrMaterialData) => {
   let gameObject =
     Wonderjs.GameObjectRunAPI.create()->ResultUtils.getExnSuccessValue;
 
@@ -403,9 +418,51 @@ let _createPlane =
     localPosition->Wonderjs.PositionVO.create,
   )
   ->ResultUtils.getExnSuccessValueIgnore;
-  Wonderjs.TransformRunAPI.setLocalScale(
+
+  let (x, y, z) = localEulerAngles;
+  Wonderjs.TransformRunAPI.setLocalEulerAngles(
     transform,
-    (50., 50., 50.)->Wonderjs.ScaleVO.create,
+    (
+      x->Wonderjs.AngleVO.create,
+      y->Wonderjs.AngleVO.create,
+      z->Wonderjs.AngleVO.create,
+    )
+    ->Wonderjs.EulerAnglesVO.create,
+  )
+  ->ResultUtils.getExnSuccessValueIgnore;
+
+  let radius = 2.;
+  // let bands = 2;
+  let bands = 20;
+  let geometry =
+    Wonderjs.GeometryRunAPI.createSphereGeometry(radius, bands)
+    ->ResultUtils.getExnSuccessValue;
+
+  Wonderjs.GameObjectRunAPI.addGeometry(gameObject, geometry)
+  ->ResultUtils.getExnSuccessValueIgnore;
+
+  let material =
+    Wonderjs.PBRMaterialRunAPI.create()->ResultUtils.getExnSuccessValue;
+
+  _setPBRMaterialData(material, pbrMaterialData);
+
+  Wonderjs.GameObjectRunAPI.addPBRMaterial(gameObject, material)
+  ->ResultUtils.getExnSuccessValueIgnore;
+
+  gameObject;
+};
+
+let _createPlane = ((localPosition, localEulerAngles), pbrMaterialData) => {
+  let gameObject =
+    Wonderjs.GameObjectRunAPI.create()->ResultUtils.getExnSuccessValue;
+
+  let transform =
+    Wonderjs.GameObjectRunAPI.getTransform(gameObject)
+    ->Wonderjs.OptionSt.getExn;
+
+  Wonderjs.TransformRunAPI.setLocalPosition(
+    transform,
+    localPosition->Wonderjs.PositionVO.create,
   )
   ->ResultUtils.getExnSuccessValueIgnore;
 
@@ -422,7 +479,7 @@ let _createPlane =
   ->ResultUtils.getExnSuccessValueIgnore;
 
   let geometry =
-    Wonderjs.GeometryRunAPI.createPlaneGeometry(1,1,1,1)
+    Wonderjs.GeometryRunAPI.createPlaneGeometry(50, 50, 1, 1)
     ->ResultUtils.getExnSuccessValue;
 
   Wonderjs.GameObjectRunAPI.addGeometry(gameObject, geometry)
@@ -431,26 +488,7 @@ let _createPlane =
   let material =
     Wonderjs.PBRMaterialRunAPI.create()->ResultUtils.getExnSuccessValue;
 
-  Wonderjs.PBRMaterialRunAPI.setDiffuseColor(
-    material,
-    diffuse->Wonderjs.Color3VO.create->Wonderjs.DiffuseVO.create,
-  )
-  ->ResultUtils.getExnSuccessValueIgnore;
-  Wonderjs.PBRMaterialRunAPI.setSpecular(
-    material,
-    specular->Wonderjs.SpecularVO.create,
-  )
-  ->ResultUtils.getExnSuccessValueIgnore;
-  Wonderjs.PBRMaterialRunAPI.setRoughness(
-    material,
-    roughness->Wonderjs.RoughnessVO.create,
-  )
-  ->ResultUtils.getExnSuccessValueIgnore;
-  Wonderjs.PBRMaterialRunAPI.setMetalness(
-    material,
-    metalness->Wonderjs.MetalnessVO.create,
-  )
-  ->ResultUtils.getExnSuccessValueIgnore;
+  _setPBRMaterialData(material, pbrMaterialData);
 
   Wonderjs.GameObjectRunAPI.addPBRMaterial(gameObject, material)
   ->ResultUtils.getExnSuccessValueIgnore;
@@ -458,36 +496,91 @@ let _createPlane =
   gameObject;
 };
 
-let _buildScene = () => {
+let _buildScene1 = () => {
   let _ = _createCamera();
   let _ = _createDirectionLight();
 
   let _ =
-    _createSphere((5.0, 0.0, 5.0), ((0.5, 0.5, 0.1), 0.95, 0.3, 0.7));
+    _createSphere(
+      ((5.0, 0.0, 5.0), (0., 0., 0.)),
+      (((0.5, 0.5, 0.1), 0.95, 0.3, 0.07), (None, None, None, None)),
+    );
 
-  // let _ =
-  //   _createSphere(((-5.0), 0.0, 5.0), ((0.0, 1.0, 0.1), 0.2, 0.1, 0.5));
+  let _ =
+    _createSphere(
+      (((-5.0), 0.0, 5.0), (0., 0., 0.)),
+      (((0.0, 1.0, 0.1), 0.2, 0.1, 0.05), (None, None, None, None)),
+    );
 
-// TODO fix plane
-  // let _ =
-  //   _createPlane(
-  //     ((0., (-10.), (-5.)), (0., 0., 0.)),
-  //     ((0., 0., 1.), 0.95, 0.6, 0.3),
-  //   );
+  let _ =
+    _createPlane(
+      ((0., (-10.), (-5.)), (-90., 0., 0.)),
+      (((0., 0., 1.), 0.95, 0.6, 0.03), (None, None, None, None)),
+    );
+
   ();
 };
 
-let _readPNGFile = [%bs.raw
+let _buildScene2 = () => {
+  let _ = _createCamera();
+  let _ = _createDirectionLight();
+
+  let _ =
+    _createSphere(
+      ((5.0, 0.0, 5.0), (0., 0., 0.)),
+      (
+        ((0., 0., 0.), 0.95, 0.0, 0.0),
+        (
+          "diffuseMap1"->Some,
+          "normalMap1"->Some,
+          "emissionMap1"->Some,
+          "metalRoughnessMap1"->Some,
+        ),
+      ),
+    );
+
+  let _ =
+    _createSphere(
+      (((-5.0), 0.0, 5.0), (0., 90., 0.)),
+      (
+        ((0., 0., 0.), 0.95, 0.0, 0.0),
+        (
+          "diffuseMap1"->Some,
+          "normalMap1"->Some,
+          "emissionMap1"->Some,
+          "metalRoughnessMap1"->Some,
+        ),
+      ),
+    );
+
+  let _ =
+    _createPlane(
+      ((0., (-10.), (-5.)), ((-90.), 0., 0.)),
+      (
+        ((0., 0., 0.), 0.95, 0.0, 0.0),
+        (
+          "diffuseMap2"->Some,
+          "normalMap2"->Some,
+          "emissionMap2"->Some,
+          "metalRoughnessMap2"->Some,
+        ),
+      ),
+    );
+
+  ();
+};
+
+let _readPNGFile: Js.Typed_array.ArrayBuffer.t => Wonderjs.ImagePOType.data = [%bs.raw
   {|
    (buf) =>{
-      var loadpng = require("@cwasm/loadpng");
+      var loadpng = require("@cwasm/lodepng");
 
       return loadpng.decode(buf);
    }
 |}
 ];
 
-let _readJPEGFile = [%bs.raw
+let _readJPEGFile: Js.Typed_array.ArrayBuffer.t => Wonderjs.ImagePOType.data = [%bs.raw
   {|
    (buf) =>{
       var jpegturbo = require("@cwasm/jpeg-turbo");
@@ -501,10 +594,10 @@ let _isPNGFile = buffer => {
   let viewU8 = Js.Typed_array.Uint8Array.fromBuffer(buffer);
   let offset = 0x0;
 
-  Js.Typed_array.Uint8Array.unsafe_get(viewU8, offset, ) === 0x89
-  && Js.Typed_array.Uint8Array.unsafe_get(viewU8, offset + 1, ) === 0x50
-  && Js.Typed_array.Uint8Array.unsafe_get(viewU8, offset + 2, ) === 0x4E
-  && Js.Typed_array.Uint8Array.unsafe_get(viewU8, offset + 3, ) === 0x47;
+  Js.Typed_array.Uint8Array.unsafe_get(viewU8, offset) === 0x89
+  && Js.Typed_array.Uint8Array.unsafe_get(viewU8, offset + 1) === 0x50
+  && Js.Typed_array.Uint8Array.unsafe_get(viewU8, offset + 2) === 0x4E
+  && Js.Typed_array.Uint8Array.unsafe_get(viewU8, offset + 3) === 0x47;
 };
 
 let _isJPEGFile = buffer => {
@@ -521,10 +614,10 @@ let _readImageFile = path => {
   let buf = Node.readFileSync(path);
 
   _isPNGFile(buf)
-    ? _readPNGFile(buf)->Wonderjs.Result.succeed
+    ? _readPNGFile(buf)->WonderBsMost.Most.just->Wonderjs.Result.succeed
     : {
       _isJPEGFile(buf)
-        ? _readJPEGFile(buf)->Wonderjs.Result.succeed
+        ? _readJPEGFile(buf)->WonderBsMost.Most.just->Wonderjs.Result.succeed
         : Wonderjs.Result.failWith("Cannot process image file $path");
     };
 };
@@ -540,52 +633,65 @@ let start = () => {
   Wonderjs.DirectorCPAPI.prepare((_getWindowWidth(), _getWindowHeight()), 30)
   ->Wonderjs.Result.handleFail(ResultUtils.handleFail);
 
-  _buildScene();
-
   let stream =
-    Wonderjs.DirectorCPAPI.init()
-    ->Wonderjs.Result.handleFail(ResultUtils.handleFail)
-    ->_getStreamFromTuple;
+    Wonderjs.AssetRunAPI.loadImages([
+      ("emissionMap1", "./asset/BoomBox/glTF/BoomBox_emissive.png"),
+      ("normalMap1", "./asset/BoomBox/glTF/BoomBox_normal.png"),
+      ("diffuseMap1", "./asset/BoomBox/glTF/BoomBox_baseColor.png"),
+      (
+        "metalRoughnessMap1",
+        "./asset/BoomBox/glTF/BoomBox_metallicRoughness.png",
+      ),
+      ("emissionMap2", "./asset/DamagedHelmet/glTF/Default_emissive.jpg"),
+      ("normalMap2", "./asset/DamagedHelmet/glTF/Default_normal.jpg"),
+      ("diffuseMap2", "./asset/DamagedHelmet/glTF/Default_albedo.jpg"),
+      (
+        "metalRoughnessMap2",
+        "./asset/DamagedHelmet/glTF/Default_metalRoughness.jpg",
+      ),
+    ])
+    ->ResultUtils.getExnSuccessValue
+    ->WonderBsMost.Most.concat(_buildScene2()->WonderBsMost.Most.just, _)
+    ->WonderBsMost.Most.map(_ => ()->Wonderjs.Result.succeed, _);
 
   stream
-  -> WonderBsMost.Most.concat(
-            Wonderjs.DirectorCPAPI.update()
-            ->Wonderjs.Result.handleFail(ResultUtils.handleFail)
-            ->_getStreamFromTuple, _
-  )
+  ->WonderBsMost.Most.concat(
+      Wonderjs.DirectorCPAPI.init()
+      ->Wonderjs.Result.handleFail(ResultUtils.handleFail)
+      ->_getStreamFromTuple,
+      _,
+    )
+  ->WonderBsMost.Most.concat(
+      Wonderjs.DirectorCPAPI.update()
+      ->Wonderjs.Result.handleFail(ResultUtils.handleFail)
+      ->_getStreamFromTuple,
+      _,
+    )
   ->WonderBsMost.Most.drain
-  ->Js.Promise.then_(() => {Js.log("init and update")->Js.Promise.resolve}, _)
-          ->Js.Promise.catch(
-              e => {
-                Js.log(e);
-                e->Obj.magic->Js.Promise.reject;
-              },
-              _,
-            )
+  ->Js.Promise.then_(
+      () => {Js.log("init and update")->Js.Promise.resolve},
+      _,
+    )
+  ->Js.Promise.catch(
+      e => {
+        Js.log(e);
+        e->Obj.magic->Js.Promise.reject;
+      },
+      _,
+    )
   ->Js.Promise.then_(
       () => {
-          let stream = Wonderjs.DirectorCPAPI.render()
-                      ->Wonderjs.Result.handleFail(ResultUtils.handleFail)
-                      ->_getStreamFromTuple;
+        let stream =
+          Wonderjs.DirectorCPAPI.render()
+          ->Wonderjs.Result.handleFail(ResultUtils.handleFail)
+          ->_getStreamFromTuple;
 
         let rec _onFrame = () => {
-          // let stream =
-          //   Wonderjs.DirectorCPAPI.update()
-          //   ->Wonderjs.Result.handleFail(ResultUtils.handleFail)
-          //   ->_getStreamFromTuple;
-
-            // stream->WonderBsMost.Most.concat(
-            //           Wonderjs.DirectorCPAPI.render()
-            //           ->Wonderjs.Result.handleFail(ResultUtils.handleFail)
-            //           ->_getStreamFromTuple,
-            //           _,
-            //         );
-
           stream
           ->WonderBsMost.Most.drain
           ->Js.Promise.then_(
               () => {
-                // Js.log("finish one frame");
+                Js.log("render");
 
                 _onFrame()->Js.Promise.resolve;
               },
