@@ -34,15 +34,15 @@ module Extend3D = {
 module TextureUsage = {
   type t = int;
 
-  [@bs.val] [@bs.scope "GPUTextureUsage"] [@bs.module "webgpu"]
+  [@bs.val] [@bs.scope "GPUTextureUsage"] [@bs.module "wonder-webgpu"]
   external copy_src: t = "COPY_SRC";
-  [@bs.val] [@bs.scope "GPUTextureUsage"] [@bs.module "webgpu"]
+  [@bs.val] [@bs.scope "GPUTextureUsage"] [@bs.module "wonder-webgpu"]
   external copy_dst: t = "COPY_DST";
-  [@bs.val] [@bs.scope "GPUTextureUsage"] [@bs.module "webgpu"]
+  [@bs.val] [@bs.scope "GPUTextureUsage"] [@bs.module "wonder-webgpu"]
   external sampled: t = "SAMPLED";
-  [@bs.val] [@bs.scope "GPUTextureUsage"] [@bs.module "webgpu"]
+  [@bs.val] [@bs.scope "GPUTextureUsage"] [@bs.module "wonder-webgpu"]
   external storage: t = "STORAGE";
-  [@bs.val] [@bs.scope "GPUTextureUsage"] [@bs.module "webgpu"]
+  [@bs.val] [@bs.scope "GPUTextureUsage"] [@bs.module "wonder-webgpu"]
   external output_attachment: t = "OUTPUT_ATTACHMENT";
 };
 
@@ -93,46 +93,46 @@ module Queue = {
 module ShaderStage = {
   type t = int;
 
-  [@bs.val] [@bs.scope "GPUShaderStage"] [@bs.module "webgpu"]
+  [@bs.val] [@bs.scope "GPUShaderStage"] [@bs.module "wonder-webgpu"]
   external ray_generation: t = "RAY_GENERATION";
-  [@bs.val] [@bs.scope "GPUShaderStage"] [@bs.module "webgpu"]
+  [@bs.val] [@bs.scope "GPUShaderStage"] [@bs.module "wonder-webgpu"]
   external ray_closest_hit: t = "RAY_CLOSEST_HIT";
-  [@bs.val] [@bs.scope "GPUShaderStage"] [@bs.module "webgpu"]
+  [@bs.val] [@bs.scope "GPUShaderStage"] [@bs.module "wonder-webgpu"]
   external ray_any_hit: t = "RAY_ANY_HIT";
-  [@bs.val] [@bs.scope "GPUShaderStage"] [@bs.module "webgpu"]
+  [@bs.val] [@bs.scope "GPUShaderStage"] [@bs.module "wonder-webgpu"]
   external ray_miss: t = "RAY_MISS";
-  [@bs.val] [@bs.scope "GPUShaderStage"] [@bs.module "webgpu"]
+  [@bs.val] [@bs.scope "GPUShaderStage"] [@bs.module "wonder-webgpu"]
   external ray_intersection: t = "RAY_INTERSECTION";
-  [@bs.val] [@bs.scope "GPUShaderStage"] [@bs.module "webgpu"]
+  [@bs.val] [@bs.scope "GPUShaderStage"] [@bs.module "wonder-webgpu"]
   external compute: t = "COMPUTE";
-  [@bs.val] [@bs.scope "GPUShaderStage"] [@bs.module "webgpu"]
+  [@bs.val] [@bs.scope "GPUShaderStage"] [@bs.module "wonder-webgpu"]
   external fragment: t = "FRAGMENT";
-  [@bs.val] [@bs.scope "GPUShaderStage"] [@bs.module "webgpu"]
+  [@bs.val] [@bs.scope "GPUShaderStage"] [@bs.module "wonder-webgpu"]
   external vertex: t = "VERTEX";
 };
 
 module BufferUsage = {
   type t = int;
 
-  [@bs.val] [@bs.scope "GPUBufferUsage"] [@bs.module "webgpu"]
+  [@bs.val] [@bs.scope "GPUBufferUsage"] [@bs.module "wonder-webgpu"]
   external storage: t = "STORAGE";
-  [@bs.val] [@bs.scope "GPUBufferUsage"] [@bs.module "webgpu"]
+  [@bs.val] [@bs.scope "GPUBufferUsage"] [@bs.module "wonder-webgpu"]
   external uniform: t = "UNIFORM";
-  [@bs.val] [@bs.scope "GPUBufferUsage"] [@bs.module "webgpu"]
+  [@bs.val] [@bs.scope "GPUBufferUsage"] [@bs.module "wonder-webgpu"]
   external indirect: t = "INDIRECT";
-  [@bs.val] [@bs.scope "GPUBufferUsage"] [@bs.module "webgpu"]
+  [@bs.val] [@bs.scope "GPUBufferUsage"] [@bs.module "wonder-webgpu"]
   external vertex: t = "VERTEX";
-  [@bs.val] [@bs.scope "GPUBufferUsage"] [@bs.module "webgpu"]
+  [@bs.val] [@bs.scope "GPUBufferUsage"] [@bs.module "wonder-webgpu"]
   external index: t = "INDEX";
-  [@bs.val] [@bs.scope "GPUBufferUsage"] [@bs.module "webgpu"]
+  [@bs.val] [@bs.scope "GPUBufferUsage"] [@bs.module "wonder-webgpu"]
   external map_read: t = "MAP_WRITE";
-  [@bs.val] [@bs.scope "GPUBufferUsage"] [@bs.module "webgpu"]
+  [@bs.val] [@bs.scope "GPUBufferUsage"] [@bs.module "wonder-webgpu"]
   external map_write: t = "MAP_WRITE";
-  [@bs.val] [@bs.scope "GPUBufferUsage"] [@bs.module "webgpu"]
+  [@bs.val] [@bs.scope "GPUBufferUsage"] [@bs.module "wonder-webgpu"]
   external copy_src: t = "COPY_SRC";
-  [@bs.val] [@bs.scope "GPUBufferUsage"] [@bs.module "webgpu"]
+  [@bs.val] [@bs.scope "GPUBufferUsage"] [@bs.module "wonder-webgpu"]
   external copy_dst: t = "COPY_DST";
-  [@bs.val] [@bs.scope "GPUBufferUsage"] [@bs.module "webgpu"]
+  [@bs.val] [@bs.scope "GPUBufferUsage"] [@bs.module "wonder-webgpu"]
   external ray_tracing: t = "RAY_TRACING";
 };
 
@@ -163,23 +163,23 @@ module AccelerationContainerUsage = {
 
   [@bs.val]
   [@bs.scope "GPURayTracingAccelerationContainerUsage"]
-  [@bs.module "webgpu"]
+  [@bs.module "wonder-webgpu"]
   external none: t = "NONE";
   [@bs.val]
   [@bs.scope "GPURayTracingAccelerationContainerUsage"]
-  [@bs.module "webgpu"]
+  [@bs.module "wonder-webgpu"]
   external allow_update: t = "ALLOW_UPDATE";
   [@bs.val]
   [@bs.scope "GPURayTracingAccelerationContainerUsage"]
-  [@bs.module "webgpu"]
+  [@bs.module "wonder-webgpu"]
   external prefer_fast_trace: t = "PREFER_FAST_TRACE";
   [@bs.val]
   [@bs.scope "GPURayTracingAccelerationContainerUsage"]
-  [@bs.module "webgpu"]
+  [@bs.module "wonder-webgpu"]
   external prefer_fast_build: t = "PREFER_FAST_BUILD";
   [@bs.val]
   [@bs.scope "GPURayTracingAccelerationContainerUsage"]
-  [@bs.module "webgpu"]
+  [@bs.module "wonder-webgpu"]
   external low_memory: t = "LOW_MEMORY";
 };
 
@@ -188,15 +188,15 @@ module AccelerationGeometryUsage = {
 
   [@bs.val]
   [@bs.scope "GPURayTracingAccelerationGeometryUsage"]
-  [@bs.module "webgpu"]
+  [@bs.module "wonder-webgpu"]
   external none: t = "NONE";
   [@bs.val]
   [@bs.scope "GPURayTracingAccelerationGeometryUsage"]
-  [@bs.module "webgpu"]
+  [@bs.module "wonder-webgpu"]
   external opaque: t = "OPAQUE";
   [@bs.val]
   [@bs.scope "GPURayTracingAccelerationGeometryUsage"]
-  [@bs.module "webgpu"]
+  [@bs.module "wonder-webgpu"]
   external allow_any_hit: t = "ALLOW_ANY_HIT";
 };
 
@@ -205,24 +205,24 @@ module AccelerationInstanceUsage = {
 
   [@bs.val]
   [@bs.scope "GPURayTracingAccelerationInstanceUsage"]
-  [@bs.module "webgpu"]
+  [@bs.module "wonder-webgpu"]
   external none: t = "NONE";
   [@bs.val]
   [@bs.scope "GPURayTracingAccelerationInstanceUsage"]
-  [@bs.module "webgpu"]
+  [@bs.module "wonder-webgpu"]
   external triangle_cull_disable: t = "TRIANGLE_CULL_DISABLE";
   [@bs.val]
   [@bs.scope "GPURayTracingAccelerationInstanceUsage"]
-  [@bs.module "webgpu"]
+  [@bs.module "wonder-webgpu"]
   external triangle_front_counterclockwise: t =
     "TRIANGLE_FRONT_COUNTERCLOCKWISE";
   [@bs.val]
   [@bs.scope "GPURayTracingAccelerationInstanceUsage"]
-  [@bs.module "webgpu"]
+  [@bs.module "wonder-webgpu"]
   external force_opaque: t = "FORCE_OPAQUE";
   [@bs.val]
   [@bs.scope "GPURayTracingAccelerationInstanceUsage"]
-  [@bs.module "webgpu"]
+  [@bs.module "wonder-webgpu"]
   external force_no_opaque: t = "FORCE_NO_OPAQUE";
 };
 
@@ -830,9 +830,9 @@ module Window = {
     "resizable": bool,
   };
 
-  [@bs.module "webgpu"] [@bs.new]
+  [@bs.module "wonder-webgpu"] [@bs.new]
   external make: descriptor => t = "WebGPUWindow";
-  [@bs.send.pipe: t] external getContext: ([@bs.as "webgpu"] _) => Context.t;
+  [@bs.send.pipe: t] external getContext: ([@bs.as "wonder-webgpu"] _) => Context.t;
   [@bs.send.pipe: t] external pollEvents:  unit;
   [@bs.send.pipe: t] external shouldClose: bool;
 
@@ -857,6 +857,6 @@ module GPU = {
 //   };
   type descriptor = Wonderjs.IWebGPUCoreDp.adapterDescriptor;
 
-  [@bs.scope "GPU"] [@bs.module "webgpu"]
+  [@bs.scope "GPU"] [@bs.module "wonder-webgpu"]
   external requestAdapter: descriptor => Js.Promise.t(Adapter.t);
 };
