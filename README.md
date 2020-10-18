@@ -2,6 +2,7 @@
 
 [![scene1](./snapshot/scene1.png)](https://github.com/Wonder-Technology/Wonder.js)
 [![scene2](./snapshot/scene2.png)](https://github.com/Wonder-Technology/Wonder.js)
+[![scene3](./snapshot/scene3.png)](https://github.com/Wonder-Technology/Wonder.js)
 
 # Prepare
 

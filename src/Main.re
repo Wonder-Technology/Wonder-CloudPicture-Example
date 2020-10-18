@@ -246,7 +246,7 @@ let _getWindowWidth = () => 640;
 
 let _getWindowHeight = () => 480;
 
-let _createCamera = () => {
+let _createCamera = (~localPosition=(0.1, 1.1, 20.), ()) => {
   let gameObject =
     Wonderjs.GameObjectRunAPI.create()->ResultUtils.getExnSuccessValue;
 
@@ -256,9 +256,10 @@ let _createCamera = () => {
 
   Wonderjs.TransformRunAPI.setLocalPosition(
     transform,
-    (0.1, 1.1, 20.)->Wonderjs.PositionVO.create,
-    // (0.1, 1.1, 50.)->Wonderjs.PositionVO.create,
-    // (0.1, 1.1, 50.)->Wonderjs.PositionVO.create,
+    localPosition->Wonderjs.PositionVO.create,
+    // (0.1, 10.1, 50.)->Wonderjs.PositionVO.create,
+    // (0.1, 50.1, 100.)->Wonderjs.PositionVO.create,
+    // (0.1, 1.1, 100.)->Wonderjs.PositionVO.create,
   )
   ->ResultUtils.getExnSuccessValueIgnore;
 
@@ -324,7 +325,7 @@ let _createDirectionLight = () => {
 
   Wonderjs.DirectionLightRunAPI.setIntensity(
     light,
-    1.0->Wonderjs.IntensityVO.create,
+    5.0->Wonderjs.IntensityVO.create,
   )
   ->ResultUtils.getExnSuccessValueIgnore;
 
@@ -334,11 +335,11 @@ let _createDirectionLight = () => {
   gameObject;
 };
 
-let _setPBRMaterialData =
+let _setBSDFMaterialData =
     (
       material,
       (
-        (diffuse, specular, metalness, roughness),
+        (diffuse, specular, specularColor, metalness, roughness, transmission),
         (
           diffuseMapImageIdOpt,
           normalMapImageIdOpt,
@@ -347,31 +348,42 @@ let _setPBRMaterialData =
         ),
       ),
     ) => {
-  Wonderjs.PBRMaterialRunAPI.setDiffuseColor(
+  Wonderjs.BSDFMaterialRunAPI.setDiffuseColor(
     material,
     diffuse->Wonderjs.Color3VO.create->Wonderjs.DiffuseVO.create,
   )
   ->ResultUtils.getExnSuccessValueIgnore;
-  Wonderjs.PBRMaterialRunAPI.setSpecular(
+  Wonderjs.BSDFMaterialRunAPI.setSpecular(
     material,
     specular->Wonderjs.SpecularVO.create,
   )
   ->ResultUtils.getExnSuccessValueIgnore;
-  Wonderjs.PBRMaterialRunAPI.setRoughness(
+  Wonderjs.BSDFMaterialRunAPI.setRoughness(
     material,
     roughness->Wonderjs.RoughnessVO.create,
   )
   ->ResultUtils.getExnSuccessValueIgnore;
-  Wonderjs.PBRMaterialRunAPI.setMetalness(
+  Wonderjs.BSDFMaterialRunAPI.setMetalness(
     material,
     metalness->Wonderjs.MetalnessVO.create,
+  )
+  ->ResultUtils.getExnSuccessValueIgnore;
+
+  Wonderjs.BSDFMaterialRunAPI.setSpecularColor(
+    material,
+    specularColor->Wonderjs.Color3VO.create->Wonderjs.SpecularColorVO.create,
+  )
+  ->ResultUtils.getExnSuccessValueIgnore;
+  Wonderjs.BSDFMaterialRunAPI.setTransmission(
+    material,
+    transmission->Wonderjs.TransmissionVO.create,
   )
   ->ResultUtils.getExnSuccessValueIgnore;
 
   switch (diffuseMapImageIdOpt) {
   | None => ()
   | Some(mapImageId) =>
-    Wonderjs.PBRMaterialRunAPI.setDiffuseMapImageId(
+    Wonderjs.BSDFMaterialRunAPI.setDiffuseMapImageId(
       material,
       mapImageId->Wonderjs.ImageIdVO.create,
     )
@@ -380,7 +392,7 @@ let _setPBRMaterialData =
   switch (normalMapImageIdOpt) {
   | None => ()
   | Some(mapImageId) =>
-    Wonderjs.PBRMaterialRunAPI.setNormalMapImageId(
+    Wonderjs.BSDFMaterialRunAPI.setNormalMapImageId(
       material,
       mapImageId->Wonderjs.ImageIdVO.create,
     )
@@ -389,7 +401,7 @@ let _setPBRMaterialData =
   switch (emissionMapImageIdOpt) {
   | None => ()
   | Some(mapImageId) =>
-    Wonderjs.PBRMaterialRunAPI.setEmissionMapImageId(
+    Wonderjs.BSDFMaterialRunAPI.setEmissionMapImageId(
       material,
       mapImageId->Wonderjs.ImageIdVO.create,
     )
@@ -398,14 +410,30 @@ let _setPBRMaterialData =
   switch (channelRoughnessMetallicMapImageIdOpt) {
   | None => ()
   | Some(mapImageId) =>
-    Wonderjs.PBRMaterialRunAPI.setChannelRoughnessMetallicMapImageId(
+    Wonderjs.BSDFMaterialRunAPI.setChannelRoughnessMetallicMapImageId(
       material,
       mapImageId->Wonderjs.ImageIdVO.create,
     )
   };
 };
 
-let _createSphere = ((localPosition, localEulerAngles), pbrMaterialData) => {
+let _createSphere =
+    (
+      ~localPosition,
+      ~localEulerAngles=(0., 0., 0.),
+      ~radius=2.,
+      ~specular=1.0,
+      ~specularColor=(1.0, 1.0, 1.0),
+      ~metalness=0.0,
+      ~roughness=0.0,
+      ~transmission=0.0,
+      ~diffuse=(0.0, 0.0, 0.0),
+      ~diffuseMapImageIdOpt=None,
+      ~normalMapImageIdOpt=None,
+      ~emissionMapImageIdOpt=None,
+      ~channelRoughnessMetallicMapImageIdOpt=None,
+      (),
+    ) => {
   let gameObject =
     Wonderjs.GameObjectRunAPI.create()->ResultUtils.getExnSuccessValue;
 
@@ -431,8 +459,6 @@ let _createSphere = ((localPosition, localEulerAngles), pbrMaterialData) => {
   )
   ->ResultUtils.getExnSuccessValueIgnore;
 
-  let radius = 2.;
-  // let bands = 2;
   let bands = 20;
   let geometry =
     Wonderjs.GeometryRunAPI.createSphereGeometry(radius, bands)
@@ -442,17 +468,45 @@ let _createSphere = ((localPosition, localEulerAngles), pbrMaterialData) => {
   ->ResultUtils.getExnSuccessValueIgnore;
 
   let material =
-    Wonderjs.PBRMaterialRunAPI.create()->ResultUtils.getExnSuccessValue;
+    Wonderjs.BSDFMaterialRunAPI.create()->ResultUtils.getExnSuccessValue;
 
-  _setPBRMaterialData(material, pbrMaterialData);
+  _setBSDFMaterialData(
+    material,
+    (
+      (diffuse, specular, specularColor, metalness, roughness, transmission),
+      (
+        diffuseMapImageIdOpt,
+        normalMapImageIdOpt,
+        emissionMapImageIdOpt,
+        channelRoughnessMetallicMapImageIdOpt,
+      ),
+    ),
+  );
 
-  Wonderjs.GameObjectRunAPI.addPBRMaterial(gameObject, material)
+  Wonderjs.GameObjectRunAPI.addBSDFMaterial(gameObject, material)
   ->ResultUtils.getExnSuccessValueIgnore;
 
   gameObject;
 };
 
-let _createPlane = ((localPosition, localEulerAngles), pbrMaterialData) => {
+let _createPlane =
+    (
+      ~localPosition,
+      ~localEulerAngles=(0., 0., 0.),
+      ~width=50.,
+      ~height=50.,
+      ~specular=1.0,
+      ~specularColor=(1.0, 1.0, 1.0),
+      ~metalness=0.0,
+      ~roughness=0.0,
+      ~transmission=0.0,
+      ~diffuse=(0.0, 0.0, 0.0),
+      ~diffuseMapImageIdOpt=None,
+      ~normalMapImageIdOpt=None,
+      ~emissionMapImageIdOpt=None,
+      ~channelRoughnessMetallicMapImageIdOpt=None,
+      (),
+    ) => {
   let gameObject =
     Wonderjs.GameObjectRunAPI.create()->ResultUtils.getExnSuccessValue;
 
@@ -479,18 +533,29 @@ let _createPlane = ((localPosition, localEulerAngles), pbrMaterialData) => {
   ->ResultUtils.getExnSuccessValueIgnore;
 
   let geometry =
-    Wonderjs.GeometryRunAPI.createPlaneGeometry(50, 50, 1, 1)
+    Wonderjs.GeometryRunAPI.createPlaneGeometry(width, height, 1, 1)
     ->ResultUtils.getExnSuccessValue;
 
   Wonderjs.GameObjectRunAPI.addGeometry(gameObject, geometry)
   ->ResultUtils.getExnSuccessValueIgnore;
 
   let material =
-    Wonderjs.PBRMaterialRunAPI.create()->ResultUtils.getExnSuccessValue;
+    Wonderjs.BSDFMaterialRunAPI.create()->ResultUtils.getExnSuccessValue;
 
-  _setPBRMaterialData(material, pbrMaterialData);
+  _setBSDFMaterialData(
+    material,
+    (
+      (diffuse, specular, specularColor, metalness, roughness, transmission),
+      (
+        diffuseMapImageIdOpt,
+        normalMapImageIdOpt,
+        emissionMapImageIdOpt,
+        channelRoughnessMetallicMapImageIdOpt,
+      ),
+    ),
+  );
 
-  Wonderjs.GameObjectRunAPI.addPBRMaterial(gameObject, material)
+  Wonderjs.GameObjectRunAPI.addBSDFMaterial(gameObject, material)
   ->ResultUtils.getExnSuccessValueIgnore;
 
   gameObject;
@@ -502,20 +567,33 @@ let _buildScene1 = () => {
 
   let _ =
     _createSphere(
-      ((5.0, 0.0, 5.0), (0., 0., 0.)),
-      (((0.5, 0.5, 0.1), 0.95, 0.3, 0.07), (None, None, None, None)),
+      ~localPosition=(5.0, 0.0, 5.0),
+      ~specular=0.95,
+      ~metalness=0.3,
+      ~roughness=0.07,
+      ~diffuse=(0.5, 0.5, 0.1),
+      (),
     );
 
   let _ =
     _createSphere(
-      (((-5.0), 0.0, 5.0), (0., 0., 0.)),
-      (((0.0, 1.0, 0.1), 0.2, 0.1, 0.05), (None, None, None, None)),
+      ~localPosition=((-5.0), 0.0, 5.0),
+      ~specular=0.2,
+      ~metalness=0.1,
+      ~roughness=0.05,
+      ~diffuse=(0.0, 1.0, 0.1),
+      (),
     );
 
   let _ =
     _createPlane(
-      ((0., (-10.), (-5.)), (-90., 0., 0.)),
-      (((0., 0., 1.), 0.95, 0.6, 0.03), (None, None, None, None)),
+      ~localPosition=(0., (-10.), (-5.)),
+      ~localEulerAngles=((-90.), 0., 0.),
+      ~specular=0.95,
+      ~metalness=0.6,
+      ~roughness=0.03,
+      ~diffuse=(0., 0., 1.),
+      (),
     );
 
   ();
@@ -527,44 +605,119 @@ let _buildScene2 = () => {
 
   let _ =
     _createSphere(
-      ((5.0, 0.0, 5.0), (0., 0., 0.)),
-      (
-        ((0., 0., 0.), 0.95, 0.0, 0.0),
-        (
-          "diffuseMap1"->Some,
-          "normalMap1"->Some,
-          "emissionMap1"->Some,
-          "metalRoughnessMap1"->Some,
-        ),
-      ),
+      ~localPosition=(5.0, 0.0, 5.0),
+      ~specular=0.95,
+      ~diffuseMapImageIdOpt="diffuseMap1"->Some,
+      ~normalMapImageIdOpt="normalMap1"->Some,
+      ~emissionMapImageIdOpt="emissionMap1"->Some,
+      ~channelRoughnessMetallicMapImageIdOpt="metalRoughnessMap1"->Some,
+      (),
     );
 
   let _ =
     _createSphere(
-      (((-5.0), 0.0, 5.0), (0., 90., 0.)),
-      (
-        ((0., 0., 0.), 0.95, 0.0, 0.0),
-        (
-          "diffuseMap1"->Some,
-          "normalMap1"->Some,
-          "emissionMap1"->Some,
-          "metalRoughnessMap1"->Some,
-        ),
-      ),
+      ~localPosition=((-5.0), 0.0, 5.0),
+      ~localEulerAngles=(0., 90., 0.),
+      ~specular=0.95,
+      ~diffuseMapImageIdOpt="diffuseMap1"->Some,
+      ~normalMapImageIdOpt="normalMap1"->Some,
+      ~emissionMapImageIdOpt="emissionMap1"->Some,
+      ~channelRoughnessMetallicMapImageIdOpt="metalRoughnessMap1"->Some,
+      (),
     );
 
   let _ =
     _createPlane(
-      ((0., (-10.), (-5.)), ((-90.), 0., 0.)),
-      (
-        ((0., 0., 0.), 0.95, 0.0, 0.0),
-        (
-          "diffuseMap2"->Some,
-          "normalMap2"->Some,
-          "emissionMap2"->Some,
-          "metalRoughnessMap2"->Some,
-        ),
-      ),
+      ~localPosition=(0., (-10.), (-5.)),
+      ~localEulerAngles=((-90.), 0., 0.),
+      ~specular=0.95,
+      ~diffuseMapImageIdOpt="diffuseMap2"->Some,
+      ~normalMapImageIdOpt="normalMap2"->Some,
+      ~emissionMapImageIdOpt="emissionMap2"->Some,
+      ~channelRoughnessMetallicMapImageIdOpt="metalRoughnessMap2"->Some,
+      (),
+    );
+
+  ();
+};
+
+let _buildScene3 = () => {
+  let _ = _createCamera(~localPosition=(0.1, 1.1, 25.), ());
+  let _ = _createDirectionLight();
+
+  let _ =
+    _createSphere(
+      ~localPosition=(0.0, 0.0, 0.0),
+      ~specular=1.0,
+      ~metalness=0.3,
+      ~roughness=0.07,
+      ~diffuse=(0.5, 0.5, 0.1),
+      ~transmission=1.0,
+      (),
+    );
+
+  let _ =
+    _createSphere(
+      ~localPosition=(8.0, 0.0, 7.0),
+      ~specular=1.0,
+      ~metalness=0.3,
+      ~roughness=0.07,
+      ~diffuse=(1.0, 0.0, 0.0),
+      (),
+    );
+
+  let _ =
+    _createSphere(
+      ~localPosition=((-7.0), 3.0, 0.0),
+      ~metalness=0.3,
+      ~roughness=0.07,
+      ~diffuse=(0.0, 0.0, 1.0),
+      ~transmission=0.7,
+      (),
+    );
+
+  let _ =
+    _createPlane(
+      ~localPosition=((-6.), 0., 7.0),
+      ~width=5.,
+      ~height=5.,
+      ~localEulerAngles=(180.0, 0.0, 0.0),
+      ~metalness=0.6,
+      ~roughness=0.03,
+      ~transmission=1.0,
+      (),
+    );
+
+  let _ =
+    _createPlane(
+      ~localPosition=((-7.0), 2.0, 8.0),
+      ~width=5.,
+      ~height=5.,
+      ~metalness=0.6,
+      ~roughness=0.03,
+      ~diffuse=(0., 0., 1.),
+      ~transmission=0.7,
+      (),
+    );
+
+  let _ =
+    _createPlane(
+      ~localPosition=(0., 0., (-20.)),
+      ~localEulerAngles=(0., 0., 0.),
+      ~metalness=0.6,
+      ~roughness=0.03,
+      ~diffuse=(1., 0., 0.),
+      (),
+    );
+
+  let _ =
+    _createPlane(
+      ~localPosition=(0., (-10.), 0.),
+      ~localEulerAngles=((-90.), 0., 0.),
+      ~metalness=0.6,
+      ~roughness=0.03,
+      ~diffuse=(0., 0., 1.),
+      (),
     );
 
   ();
@@ -630,7 +783,11 @@ let start = () => {
   Wonderjs.WebGPUCoreDpRunAPI.set(_createWebGPUDp());
   Wonderjs.WebGPURayTracingDpRunAPI.set(_createWebGPURayTracingDp());
 
-  Wonderjs.DirectorCPAPI.prepare((_getWindowWidth(), _getWindowHeight()), 30)
+  Wonderjs.DirectorCPAPI.prepare(
+    ~pictureSize=(_getWindowWidth(), _getWindowHeight()),
+    ~sampleCount=30,
+    (),
+  )
   ->Wonderjs.Result.handleFail(ResultUtils.handleFail);
 
   let stream =
@@ -651,7 +808,7 @@ let start = () => {
       ),
     ])
     ->ResultUtils.getExnSuccessValue
-    ->WonderBsMost.Most.concat(_buildScene2()->WonderBsMost.Most.just, _)
+    ->WonderBsMost.Most.concat(_buildScene3()->WonderBsMost.Most.just, _)
     ->WonderBsMost.Most.map(_ => ()->Wonderjs.Result.succeed, _);
 
   stream
