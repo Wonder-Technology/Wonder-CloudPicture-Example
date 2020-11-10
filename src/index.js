@@ -2,12 +2,135 @@ var perf_hooks = require("perf_hooks");
 
 var wonderWebgpu = require("wonder-webgpu");
 
-var THREE = require("_three@0.122.0@three");
+// var THREE = require("./three/three.wonder.js");
 
-var fs = require("fs");
 
-// var BufferGeometryUtils = require("_three@0.122.0@three/examples/jsm/utils/BufferGeometryUtils");
-var BufferGeometryUtils = require("./three/BufferGeometryUtils");
+global.self = global;
+// global.atob = require('atob');
+
+// global.Blob = require('cross-blob');
+
+
+// let sizeOf = require('image-size');
+
+
+
+// global.fetch = (url, options) => {
+//     let fs = require("fs");
+
+
+//     url = url.replace("file:", "");
+
+//     if (url[0] === "/" || url[0] === "\\") {
+//         url = url.slice(1);
+//     }
+
+//     console.log("url:", url)
+
+//     if (!url.includes(".png") && !url.includes(".jpg") && !url.includes(".jpeg")) {
+//         throw new Error("not support fetch url:" + url);
+//     }
+
+//     return new Promise((resolve, reject) => {
+//         fs.readFile(url, function (error, data) {
+//             if (error) {
+//                 console.error("fetch error: ", error);
+//                 reject(JSON.stringify(error));
+//             } else {
+//                 resolve(
+//                     {
+//                         blob: () => {
+//                             return new Promise((resolve, reject) => {
+//                                 sizeOf(url, function (err, dimensions) {
+//                                     if (err) {
+//                                         reject(JSON.stringify(err));
+//                                     }
+
+//                                     let blob = new Blob([new Uint8Array(data.buffer)]);
+//                                     blob.imageWidth = dimensions.width;
+//                                     blob.imageHeight = dimensions.height;
+
+//                                     resolve(blob);
+//                                 });
+
+
+//                             });
+//                         }
+//                     }
+//                 )
+//             }
+//         });
+//     });
+// };
+
+
+
+
+
+
+
+
+
+// global.URL = require('url');
+
+// URL.createObjectURL = (blob) => {
+//     return new Promise(resolve => {
+//         blob.arrayBuffer().then(buffer => {
+//             const base64 = new Buffer.from(buffer).toString('base64');
+
+
+//             let type = "";
+//             switch (blob.type) {
+//                 case "image/png":
+//                 case "image/jpeg":
+//                     type = blob.type;
+//                     break;
+//                 default:
+//                     throw new Error("unknwon blob type:" + blob.type);
+//             }
+
+//             const completedURI = `data:` + type + `;base64,` + base64;
+//             console.log("completedURI.length:",completedURI.length)
+//             resolve(completedURI);
+//         });
+//     })
+// };
+
+
+// global.createImageBitmap = (blob, options) => {
+//     console.log("createImageBitmap:", blob, options)
+
+//     return new Promise((resolve, reject) => {
+//         blob.arrayBuffer()
+//             .then(data => {
+//                 resolve({
+//                     width: blob.imageWidth,
+//                     height: blob.imageHeight,
+//                     data: new Uint8Array(data)
+//                 })
+//             })
+
+//     })
+// };
+
+// global.createImageBitmap = undefined;
+
+// global.navigator = {
+//     userAgent: "nodejs"
+// }
+
+
+global.XMLHttpRequest = require("./lib/XMLHttpRequest.js").XMLHttpRequest;
+
+
+let THREE = require("./three/three.wonder.js");
+
+global.THREE = THREE;
+
+
+
+require("./three/GLTFLoader.js");
+require("./three/BufferGeometryUtils");
 
 var { set: setConfigDp } = require("wonder.js/lib/js/src/run/external_layer/api/dependency/ConfigDpCPAPI.bs.js");
 var { set: setSceneGraphRepoDp } = require("wonder.js/lib/js/src/run/external_layer/api/dependency/SceneGraphRepoDpCPAPI.bs.js");
@@ -18,6 +141,15 @@ var { set: setTimeDp } = require("wonder.js/lib/js/src/run/external_layer/api/de
 var { set: setConfigDp } = require("wonder.js/lib/js/src/run/external_layer/api/dependency/ConfigDpCPAPI.bs.js");
 var { prepare, init, update, render } = require("wonder.js/lib/js/src/run/external_layer/api/DirectorCPAPI.bs.js");
 
+let _imageDataMap = {};
+
+let _getImageData = (imageId) => {
+    return _imageDataMap[imageId];
+}
+
+let _setImageData = (imageId, imageData) => {
+    _imageDataMap[imageId] = imageData;
+}
 
 
 let _convertDegToRad = (degArr) => {
@@ -28,7 +160,16 @@ let _convertDegToRad = (degArr) => {
 
 
 let _log = (param1, param2) => {
-    console.log(param1, param2);
+    // console.log(param1, param2);
+}
+
+
+let _logMaterialData = (param1, param2) => {
+    // console.log(param1, param2);
+}
+
+let _fatal = (message) => {
+    throw new Error(message);
 }
 
 let _createCamera = (localPositionOpt) => {
@@ -58,10 +199,82 @@ let _createDirectionLight = () => {
     return [light, target];
 };
 
-let _createMaterial = (
-    specular, specularColor, metalness, roughness, transmission, diffuse, diffuseMapImageIdOpt, normalMapImageIdOpt, emissionMapImageIdOpt, channelRoughnessMetallicMapImageIdOpt
-) => {
+let _setMapRelatedData = (setMaterialMapFunc, mapImageIdOpt) => {
+    let { readImageFile, createTexture } = require("./utils/WonderImageLoader.js");
 
+    let imageDataArr = [
+        [
+            "emissionMap1",
+            "./asset/BoomBox/glTF/BoomBox_emissive.png"
+        ],
+        [
+            "normalMap1",
+            "./asset/BoomBox/glTF/BoomBox_normal.png"
+        ],
+        [
+            "diffuseMap1",
+            "./asset/BoomBox/glTF/BoomBox_baseColor.png"
+        ],
+        [
+            "metalRoughnessMap1",
+            "./asset/BoomBox/glTF/BoomBox_metallicRoughness.png"
+        ],
+        [
+            "emissionMap2",
+            "./asset/DamagedHelmet/glTF/Default_emissive.jpg"
+        ],
+        [
+            "normalMap2",
+            "./asset/DamagedHelmet/glTF/Default_normal.jpg"
+        ],
+        [
+            "diffuseMap2",
+            "./asset/DamagedHelmet/glTF/Default_albedo.jpg"
+        ],
+        [
+            "metalRoughnessMap2",
+            "./asset/DamagedHelmet/glTF/Default_metalRoughness.jpg"
+        ]
+    ];
+
+    if (mapImageIdOpt === undefined) {
+        return;
+    }
+
+    let mapImageId = mapImageIdOpt;
+
+
+    let data = null;
+    if (!!_getImageData(mapImageId)) {
+        data = _getImageData(mapImageId);
+    }
+    else {
+
+        let result =
+            imageDataArr.find(([imageId, _]) => {
+                return imageId === mapImageId;
+            });
+
+        if (!result) {
+            _fatal("not find image! image id is:" + String(mapImageId));
+        }
+
+        let [_, imagePath] = result;
+
+        data = readImageFile(imagePath);
+
+        _setImageData(mapImageId, data);
+    }
+
+    let texture = new THREE.DataTexture();
+    texture.image = data;
+
+    setMaterialMapFunc(createTexture(data))
+};
+
+let _createMaterial = (
+    specular, specularColor, metalness, roughness, transmission, diffuse, diffuseMapImageIdOpt, normalMapImageIdOpt, emissionMapImageIdOpt, channelRoughnessMetallicMapImageIdOpt,
+) => {
     let material = new THREE.MeshPhysicalMaterial({
         color: new THREE.Color(diffuse[0], diffuse[1], diffuse[2]),
         metalness,
@@ -79,12 +292,14 @@ let _createMaterial = (
         // specularMap: 
     });
 
-    material.wonder_specular = specular;
 
-    material.wonder_diffuseMapImageIdOpt = diffuseMapImageIdOpt;
-    material.wonder_emissionMapImageIdOpt = emissionMapImageIdOpt;
-    material.wonder_normalMapImageIdOpt = normalMapImageIdOpt;
-    material.wonder_channelRoughnessMetallicMapImageIdOpt = channelRoughnessMetallicMapImageIdOpt;
+    _setMapRelatedData((texture) => { material.map = texture }, diffuseMapImageIdOpt);
+    _setMapRelatedData((texture) => { material.emissiveMap = texture }, emissionMapImageIdOpt);
+    _setMapRelatedData((texture) => { material.normalMap = texture }, normalMapImageIdOpt);
+    _setMapRelatedData((texture) => {
+        material.metalnessMap = texture;
+        material.roughnessMap = texture;
+    }, channelRoughnessMetallicMapImageIdOpt);
 
     return material;
 };
@@ -122,7 +337,7 @@ let _createSphere = (localPosition, localEulerAnglesOpt, radiusOpt, specularOpt,
     // let geometry = new THREE.SphereGeometry(radius, 4, 4);
 
     let material = _createMaterial(
-        specular, specularColor, metalness, roughness, transmission, diffuse, diffuseMapImageIdOpt, normalMapImageIdOpt, emissionMapImageIdOpt, channelRoughnessMetallicMapImageIdOpt
+        specular, specularColor, metalness, roughness, transmission, diffuse, diffuseMapImageIdOpt, normalMapImageIdOpt, emissionMapImageIdOpt, channelRoughnessMetallicMapImageIdOpt,
     );
 
     let mesh = new THREE.Mesh(geometry, material);
@@ -175,6 +390,23 @@ let _createPlane = (localPosition, localEulerAnglesOpt, widthOpt, heightOpt, spe
 
     return mesh;
 }
+
+let _hasMap = (map) => map !== undefined && map !== null;
+
+let _fixGLTFLoadedScene = (gltfScene) => {
+    gltfScene.traverse((object) => {
+        if (!object.material) {
+            return;
+        }
+
+        let material = object.material;
+
+        if (_hasMap(material.map)) {
+            material.color.set(0.0, 0.0, 0.0);
+        }
+    });
+};
+
 
 let _buildScene1 = () => {
     let camera = _createCamera();
@@ -371,11 +603,67 @@ let _buildScene3 = () => {
 }
 
 
-let _isGeometryHasVertexData = (geometry) => {
-    let attribute = geometry.getAttribute("position");
+let _createDefaultCamera = (gltfScene) => {
+    let box3 = new THREE.Box3().setFromObject(gltfScene);
 
-    return !!attribute && attribute.count > 0;
+    let boxSize = new THREE.Vector3();
+    box3.getSize(boxSize);
+
+    return _createCamera([
+        - boxSize.x / 2 * 4, boxSize.y / 2 * 4, boxSize.z / 2 * 8
+    ]);
+};
+
+let _buildScene4 = () => {
+    let path = require("path");
+
+    let scene = new THREE.Scene();
+
+
+    // let loader = new GLTFLoader().setPath(path.join("file:", __dirname, "../asset/OutlinedBox/"));
+    // return new Promise((resolve, reject) => {
+    //     loader.load('OutlinedBox.gltf', function (gltf) {
+    // let loader = new THREE.GLTFLoader().setPath(path.join("file:", __dirname, "../asset/"));
+    // return new Promise((resolve, reject) => {
+    //     loader.load('SimpleSkinning.gltf', function (gltf) {
+    // let loader = new THREE.GLTFLoader().setPath(path.join("file:", __dirname, "../asset/CesiumMilkTruck/gltf/"));
+    // return new Promise((resolve, reject) => {
+    // let loader = new THREE.GLTFLoader().setPath(path.join("file:", __dirname, "../asset/BoomBox/glTF/"));
+    // return new Promise((resolve, reject) => {
+    //     loader.load('BoomBox.gltf', function (gltf) {
+    let loader = new THREE.GLTFLoader().setPath(path.join("file:", __dirname, "../asset/BoomBox/glTF-Binary/"));
+    return new Promise((resolve, reject) => {
+        loader.load('BoomBox.glb', function (gltf) {
+            // let loader = new THREE.GLTFLoader().setPath(path.join("file:", __dirname, "../asset/DamagedHelmet/glTF/"));
+            // return new Promise((resolve, reject) => {
+            //     loader.load('DamagedHelmet.gltf', function (gltf) {
+            // let loader = new THREE.GLTFLoader().setPath(path.join("file:", __dirname, "../asset/CesiumMilkTruck/glTF-Binary/"));
+            // return new Promise((resolve, reject) => {
+            //     loader.load('CesiumMilkTruck.glb', function (gltf) {
+
+            let scene = gltf.scene;
+
+            _fixGLTFLoadedScene(scene);
+
+            scene.add(scene);
+
+            let [light, lightTarget] = _createDirectionLight();
+            light.wonder_target = lightTarget;
+
+            scene.add(light);
+            scene.add(lightTarget);
+
+
+
+            let camera = _createDefaultCamera(scene);
+
+            scene.wonder_camera = camera;
+
+            resolve([camera, scene]);
+        });
+    });
 }
+
 
 let _convertTangentsFromFourToThree = (tangents) => {
     let j = 0;
@@ -390,6 +678,66 @@ let _convertTangentsFromFourToThree = (tangents) => {
     }
 
     return new Float32Array(resultArr);
+};
+
+
+let _hasAttribute = (bufferGeometry, attributeName) => {
+    return bufferGeometry.getAttribute(attributeName) !== undefined;
+};
+
+let _isGeometryHasVertexData = (bufferGeometry) => {
+    let attribute = bufferGeometry.getAttribute("position");
+
+    return attribute !== undefined && attribute.count > 0;
+}
+
+
+let _getNullablePoints = (bufferGeometry, attributeName) => {
+    if (_hasAttribute(bufferGeometry, attributeName)) {
+        let result = bufferGeometry.getAttribute(attributeName).array;
+        _log("get " + attributeName + ":", result);
+        return result;
+    }
+
+    return undefined;
+};
+
+let _getExistPoints = (bufferGeometry, attributeName) => {
+    if (_hasAttribute(bufferGeometry, attributeName)) {
+        let result = bufferGeometry.getAttribute(attributeName).array;
+        _log("get " + attributeName + ":", result);
+        return result;
+    }
+
+    _fatal(attributeName + " should exist!");
+}
+
+let _isNeedComputeTangents = (bufferGeometry) => {
+    return _hasAttribute(bufferGeometry, "position") && _hasAttribute(bufferGeometry, "normal") && _hasAttribute(bufferGeometry, "uv") && _hasIndices(bufferGeometry);
+};
+
+
+let _getMapImageData = (map) => {
+    let { width, height, data } = map.image;
+
+    return {
+        width,
+        height,
+        data
+    }
+}
+
+
+let _getMapImageIdAndSetImageData = (map) => {
+    if (_hasMap(map)) {
+        let imageId = map.uuid;
+
+        _setImageData(imageId, _getMapImageData(map));
+
+        return imageId;
+    }
+
+    return undefined;
 };
 
 let _setAllDp = (scene) => {
@@ -417,49 +765,6 @@ let _setAllDp = (scene) => {
         return [color.r, color.g, color.b];
     }
 
-
-    let _readPNGFile = ((buf) => {
-        var loadpng = require("@cwasm/lodepng");
-
-        return loadpng.decode(buf);
-    });
-
-    let _readJPEGFile = ((buf) => {
-        var jpegturbo = require("@cwasm/jpeg-turbo");
-
-        return jpegturbo.decode(buf);
-    });
-
-    let _isPNGFile = (buffer) => {
-        var viewU8 = new Uint8Array(buffer);
-        if (viewU8[0] === 137 && viewU8[1] === 80 && viewU8[2] === 78) {
-            return viewU8[3] === 71;
-        } else {
-            return false;
-        }
-    }
-
-    let _isJPEGFile = (buffer) => {
-        var viewU8 = new Uint8Array(buffer);
-        if (viewU8[0] === 255 && viewU8[1] === 216 && viewU8[2] === 255) {
-            return viewU8[3] === 224;
-        } else {
-            return false;
-        }
-    }
-
-    let _readImageFile = (path) => {
-        var buf = fs.readFileSync(path);
-
-        if (_isPNGFile(buf)) {
-            return _readPNGFile(buf);
-        } else if (_isJPEGFile(buf)) {
-            return _readJPEGFile(buf);
-        } else {
-            throw new Error("Cannot process image file $path");
-        }
-    }
-
     var _loadShaderFile = ((srcPath) => {
         var fs = require("fs");
         var path = require("path");
@@ -470,24 +775,24 @@ let _setAllDp = (scene) => {
                 let incl = includes[ii];
                 let stats = fs.lstatSync(incl);
                 if (!stats.isDirectory()) {
-                    throw new SyntaxError(`Include path '${incl}' is not a directory`);
+                    _fatal(`Include path '${incl}' is not a directory`);
                 }
                 let includeFilePath = path.join(incl, filePath);
                 if (fs.existsSync(includeFilePath) && fs.lstatSync(includeFilePath).isFile()) {
                     try {
                         matches.push(fs.readFileSync(includeFilePath, "utf-8"));
                     } catch (e) {
-                        throw new ReferenceError(`Cannot read included file from '${includeFilePath}'`);
+                        _fatal(`Cannot read included file from '${includeFilePath}'`);
                     }
                 } else {
-                    throw new ReferenceError(`Failed to resolve file include path for '${filePath}': '${includeFilePath}' is not a valid file path`);
+                    _fatal(`Failed to resolve file include path for '${filePath}': '${includeFilePath}' is not a valid file path`);
                 }
             };
             if (matches.length <= 0) {
-                throw new ReferenceError(`Cannot inline included file '${filePath}'`);
+                _fatal(`Cannot inline included file '${filePath}'`);
             }
             if (matches.length > 1) {
-                throw new ReferenceError(`Ambigious include directive for '${filePath}'. More than one match was found`);
+                _fatal(`Ambigious include directive for '${filePath}'. More than one match was found`);
             }
             return matches[0];
         };
@@ -544,6 +849,7 @@ let _setAllDp = (scene) => {
             return perf_hooks.performance.now();
         })
     });
+
 
     setSceneGraphRepoDp({
         sceneRepo: {
@@ -620,7 +926,6 @@ let _setAllDp = (scene) => {
         },
         transformRepo: {
             getLocalToWorldMatrix: (transform) => {
-                // let result = _getFromMatrix4(transform.matrix);
                 let result = _getFromMatrix4(transform.matrixWorld);
 
                 _log("getLocalToWorldMatrix:", result);
@@ -717,6 +1022,12 @@ let _setAllDp = (scene) => {
                     }
                 });
 
+                if (result.length > 1) {
+                    console.warn("direction lights' length > 1! only use the first one!");
+
+                    result = [result[0]];
+                }
+
                 _log("getAllLights:", result);
                 return result;
 
@@ -769,113 +1080,117 @@ let _setAllDp = (scene) => {
         bsdfMaterialRepo: {
             getDiffuseColor: (material) => {
                 let result = _getFromColor(material.color);
-                _log("getDiffuseColor:", result);
+                _logMaterialData("getDiffuseColor:", result);
                 return result;
             },
             getSpecular: (material) => {
-                let result = material.wonder_specular;
-                _log("getSpecular:", result);
+                let result = 1.0;
+                _logMaterialData("getSpecular:", result);
                 return result;
             },
             getSpecularColor: (material) => {
                 let result = [1.0, 1.0, 1.0];
-                _log("getSpecularColor:", result);
+                _logMaterialData("getSpecularColor:", result);
                 return result;
             },
             getRoughness: (material) => {
                 let result = material.roughness;
-                _log("getRoughness:", result);
+                result = result === undefined ? 0.0 : result;
+                _logMaterialData("getRoughness:", result);
                 return result;
             },
             getMetalness: (material) => {
                 let result = material.metalness;
-                _log("getMetalness:", result);
+                result = result === undefined ? 0.0 : result;
+                _logMaterialData("getMetalness:", result);
                 return result;
             },
             getTransmission: (material) => {
                 let result = material.transmission;
-                _log("getTransmission:", result);
+                result = result === undefined ? 0.0 : result;
+                _logMaterialData("getTransmission:", result);
                 return result;
             },
             getIOR: (material) => {
-                let result = 1.5;
-                _log("getIOR:", result);
+                let result = material.ior;
+                result = result === undefined ? 1.5 : result;
+                _logMaterialData("getIOR:", result);
                 return result;
             },
             getDiffuseMapImageId: (material) => {
-                let result = material.wonder_diffuseMapImageIdOpt;
-                _log("getDiffuseMapImageId:", result);
+                let result = _getMapImageIdAndSetImageData(material.map);
+                _logMaterialData("getDiffuseMapImageId:", result);
                 return result;
             },
             getChannelRoughnessMetallicMapImageId: (material) => {
-                let result = material.wonder_channelRoughnessMetallicMapImageIdOpt;
-                _log("getChannelRoughnessMetallicMapImageId:", result);
+                if (!(_hasMap(material.metalnessMap) && _hasMap(material.roughnessMap)) && !(!_hasMap(material.metalnessMap) && !_hasMap(material.roughnessMap))) {
+                    _fatal("only support metallicRoughnessTexture, not support metallicTexture or rougnessTexture!")
+                }
+
+                let result = _getMapImageIdAndSetImageData(material.metalnessMap);
+                _logMaterialData("getChannelRoughnessMetallicMapImageId:", result);
                 return result;
             },
             getEmissionMapImageId: (material) => {
-                let result = material.wonder_emissionMapImageIdOpt;
-                _log("getEmissionMapImageId:", result);
+                let result = _getMapImageIdAndSetImageData(material.emissiveMap);
+                _logMaterialData("getEmissionMapImageId:", result);
                 return result;
             },
             getNormalMapImageId: (material) => {
-                let result = material.wonder_normalMapImageIdOpt;
-                _log("getNormalMapImageId:", result);
+                let result = _getMapImageIdAndSetImageData(material.normalMap);
+                _logMaterialData("getNormalMapImageId:", result);
                 return result;
             },
             getTransmissionMapImageId: (material) => {
-                let result = undefined;
-                _log("getTransmissionMapImageId:", result);
+                let result = _getMapImageIdAndSetImageData(material.transmissionMap);
+                _logMaterialData("getTransmissionMapImageId:", result);
                 return result;
             },
             getSpecularMapImageId: (material) => {
                 let result = undefined;
-                _log("getSpecularMapImageId:", result);
+                _logMaterialData("getSpecularMapImageId:", result);
                 return result;
             },
             isSame: (material1, material2) => {
                 let result = _getMaterialId(material1) === _getMaterialId(material2);
-                _log("isSame:", result);
+                _logMaterialData("isSame:", result);
                 return result;
             },
             getId: _getMaterialId
         },
         geometryRepo: {
             getVertices: (geometry) => {
-                let result = geometry.getAttribute("position").array;
-                _log("getVertices:", result);
-                return result;
+                return _getExistPoints(geometry, "position");
             },
             getNormals: (geometry) => {
-                let result = geometry.getAttribute("normal").array;
-                _log("getNormals:", result);
-                return result;
+                return _getExistPoints(geometry, "normal");
             },
             getTexCoords: (geometry) => {
-                let result = geometry.getAttribute("uv").array;
-                _log("getTexCoords:", result);
-                return result;
+                return _getNullablePoints(geometry, "uv");
             },
             getTangents: (geometry) => {
-                let tangents = geometry.getAttribute("tangents");
+                if (!_hasAttribute(geometry, "tangents")) {
+                    if (_isNeedComputeTangents(geometry)) {
+                        THREE.BufferGeometryUtils.computeTangents(geometry);
 
-                if (!tangents) {
-                    BufferGeometryUtils.computeTangents(geometry);
+                        let newResultData = _convertTangentsFromFourToThree(geometry.getAttribute("tangent").array);
 
-                    let newResultData = _convertTangentsFromFourToThree(geometry.getAttribute("tangent").array);
+                        geometry.setAttribute("tangent", new THREE.BufferAttribute(newResultData, 4));
 
-                    geometry.setAttribute("tangent", new THREE.BufferAttribute(newResultData, 4));
+                        return newResultData;
+                    }
 
-                    return newResultData;
+                    return undefined;
                 }
+
+                let result = geometry.getAttribute("tangent");
 
                 _log("getTangents222:", result);
 
-                return tangents.array;
+                return result.array;
             },
             getIndices: (geometry) => {
-                // _log(geometry);
-
-                let result = geometry.index.array;
+                let result = _getExistIndices(geometry);
                 _log("getIndices:", result);
                 return result;
             },
@@ -888,66 +1203,14 @@ let _setAllDp = (scene) => {
         }
     });
 
-    let imageDataMap = {};
 
     setImageRepoDp({
         getData: (targetImageId) => {
-            let imageDataArr = [
-                [
-                    "emissionMap1",
-                    "./asset/BoomBox/glTF/BoomBox_emissive.png"
-                ],
-                [
-                    "normalMap1",
-                    "./asset/BoomBox/glTF/BoomBox_normal.png"
-                ],
-                [
-                    "diffuseMap1",
-                    "./asset/BoomBox/glTF/BoomBox_baseColor.png"
-                ],
-                [
-                    "metalRoughnessMap1",
-                    "./asset/BoomBox/glTF/BoomBox_metallicRoughness.png"
-                ],
-                [
-                    "emissionMap2",
-                    "./asset/DamagedHelmet/glTF/Default_emissive.jpg"
-                ],
-                [
-                    "normalMap2",
-                    "./asset/DamagedHelmet/glTF/Default_normal.jpg"
-                ],
-                [
-                    "diffuseMap2",
-                    "./asset/DamagedHelmet/glTF/Default_albedo.jpg"
-                ],
-                [
-                    "metalRoughnessMap2",
-                    "./asset/DamagedHelmet/glTF/Default_metalRoughness.jpg"
-                ]
-            ];
-
-
-            if (!!imageDataMap[targetImageId]) {
-                return imageDataMap[targetImageId];
+            if (!!_getImageData(targetImageId)) {
+                return _getImageData(targetImageId);
             }
 
-            let result =
-                imageDataArr.find(([imageId, _]) => {
-                    return imageId === targetImageId;
-                });
-
-            if (!result) {
-                throw new Error("not find image! image id is:", targetImageId);
-            }
-
-            let [_, imagePath] = result;
-
-            let data = _readImageFile(imagePath);
-
-            imageDataMap[targetImageId] = data;
-
-            return data;
+            _fatal("not find image data! image id is:" + String(targetImageId));
         }
     });
 
@@ -1280,17 +1543,31 @@ let _getBufferGeometry = (geometry) => {
 
     let result = new THREE.BufferGeometry().fromGeometry(geometry);
 
-    return BufferGeometryUtils.mergeVertices(result);
+    return THREE.BufferGeometryUtils.mergeVertices(result);
 };
 
+let _hasIndices = (bufferGeometry) => {
+    return bufferGeometry.index !== null;
+}
+
+let _getExistIndices = (bufferGeometry) => {
+    if (_hasIndices(bufferGeometry)) {
+        return bufferGeometry.index.array;
+    }
+
+    _fatal("geometry should has indices!");
+}
+
 let _convertBufferGeometryIndexToUint32Array = (bufferGeometry) => {
-    if (bufferGeometry.index.array instanceof Uint32Array) {
+    let indices = _getExistIndices(bufferGeometry);
+
+    if (indices instanceof Uint32Array) {
         return bufferGeometry;
     }
 
 
-    if (bufferGeometry.index.array instanceof Uint16Array) {
-        let typeArr = bufferGeometry.index.array;
+    if (indices instanceof Uint16Array) {
+        let typeArr = indices;
         let result = [];
 
         for (let i = 0; i < typeArr.length; i++) {
@@ -1304,7 +1581,7 @@ let _convertBufferGeometryIndexToUint32Array = (bufferGeometry) => {
         return bufferGeometry;
     }
 
-    throw new Error("unknown index");
+    _fatal("unknown index");
 };
 
 let _convertSceneAllGeometries = (scene) => {
@@ -1324,9 +1601,10 @@ let _convertSceneAllGeometries = (scene) => {
 };
 
 async function _main() {
-    let [camera, scene] = _buildScene1();
+    // let [camera, scene] = _buildScene1();
     // let [camera, scene] = _buildScene2();
     // let [camera, scene] = _buildScene3();
+    let [camera, scene] = await _buildScene4();
 
     scene = _convertSceneAllGeometries(scene);
 
@@ -1345,7 +1623,7 @@ async function _main() {
     while (true) {
         await render();
 
-        _log("render");
+        // console.log("render");
     }
 }
 

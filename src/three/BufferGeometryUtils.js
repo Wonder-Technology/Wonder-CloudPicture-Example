@@ -1,6 +1,5 @@
-var THREE = require("_three@0.122.0@three");
-
-module.exports = {
+// module.exports = {
+THREE.BufferGeometryUtils = {
 	computeTangents: function (geometry) {
 
 		var index = geometry.index;
@@ -23,9 +22,9 @@ module.exports = {
 		var positions = attributes.position.array;
 		var normals = attributes.normal.array;
 		var uvs = attributes.uv.array;
-// 		console.log(
-// attributes.uv.array
-// 		)
+		// 		console.log(
+		// attributes.uv.array
+		// 		)
 		// var uvs = attributes.uv.array.map((value, index) =>{
 		// 	if(index % 2 === 1){
 		// 		return 1.0 - value;

@@ -13,7 +13,6 @@
     "devDependencies": {
     },
     "dependencies": {
-        "three": "^0.122.0",
         "wonder-webgpu": "0.0.1",
         "wonder.js": "2.0.0-alpha.6",
         "@cwasm/jpeg-turbo": "^0.1.3",
