@@ -30,7 +30,6 @@ let _isJPEGFile = (buffer) => {
     }
 }
 
-
 let _convertToImageData = (buf) => {
     if (_isPNGFile(buf)) {
         return _readPNGFile(buf);

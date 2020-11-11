@@ -2321,8 +2321,8 @@ THREE.GLTFLoader = (function () {
 					let { convertToImageData } = require("../utils/ReadImage.js");
 					let { createTexture } = require("./WonderImageLoader.js");
 
-					console.log("bufferView:", bufferView, source)
-					console.log("converted imageData:", convertToImageData(Buffer.from(bufferView)))
+					// console.log("bufferView:", bufferView, source)
+					// console.log("converted imageData:", convertToImageData(Buffer.from(bufferView)))
 
 
 					resolve(createTexture(convertToImageData(Buffer.from(bufferView))));

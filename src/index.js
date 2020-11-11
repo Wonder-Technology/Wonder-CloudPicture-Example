@@ -172,6 +172,12 @@ let _fatal = (message) => {
     throw new Error(message);
 }
 
+
+let _fatal2 = (message, data) => {
+    console.error(message, data);
+    throw new Error(message);
+}
+
 let _createCamera = (localPositionOpt) => {
     var localPosition = localPositionOpt !== undefined ? localPositionOpt : [
         0.1,
@@ -200,7 +206,8 @@ let _createDirectionLight = () => {
 };
 
 let _setMapRelatedData = (setMaterialMapFunc, mapImageIdOpt) => {
-    let { readImageFile, createTexture } = require("./utils/WonderImageLoader.js");
+    let { readImageFile } = require("./utils/ReadImage.js");
+    let { createTexture } = require("./three/WonderImageLoader.js");
 
     let imageDataArr = [
         [
@@ -234,7 +241,15 @@ let _setMapRelatedData = (setMaterialMapFunc, mapImageIdOpt) => {
         [
             "metalRoughnessMap2",
             "./asset/DamagedHelmet/glTF/Default_metalRoughness.jpg"
-        ]
+        ],
+
+
+
+        // TODO remove
+        [
+            "diffuseMap3",
+            "./mine/AlphaBlendLabels.png"
+        ],
     ];
 
     if (mapImageIdOpt === undefined) {
@@ -611,51 +626,65 @@ let _createDefaultCamera = (gltfScene) => {
 
     return _createCamera([
         - boxSize.x / 2 * 4, boxSize.y / 2 * 4, boxSize.z / 2 * 8
+        // 0, boxSize.y / 2 * 4, -boxSize.z / 2 * 20
     ]);
 };
 
-let _buildScene4 = () => {
+let _loadGLTF = (modelDirPath, modelName) => {
     let path = require("path");
 
-    let scene = new THREE.Scene();
-
-
-    // let loader = new GLTFLoader().setPath(path.join("file:", __dirname, "../asset/OutlinedBox/"));
-    // return new Promise((resolve, reject) => {
-    //     loader.load('OutlinedBox.gltf', function (gltf) {
-    // let loader = new THREE.GLTFLoader().setPath(path.join("file:", __dirname, "../asset/"));
-    // return new Promise((resolve, reject) => {
-    //     loader.load('SimpleSkinning.gltf', function (gltf) {
-    // let loader = new THREE.GLTFLoader().setPath(path.join("file:", __dirname, "../asset/CesiumMilkTruck/gltf/"));
-    // return new Promise((resolve, reject) => {
-    // let loader = new THREE.GLTFLoader().setPath(path.join("file:", __dirname, "../asset/BoomBox/glTF/"));
-    // return new Promise((resolve, reject) => {
-    //     loader.load('BoomBox.gltf', function (gltf) {
-    let loader = new THREE.GLTFLoader().setPath(path.join("file:", __dirname, "../asset/BoomBox/glTF-Binary/"));
+    let loader = new THREE.GLTFLoader().setPath(path.join("file:", __dirname, modelDirPath));
     return new Promise((resolve, reject) => {
-        loader.load('BoomBox.glb', function (gltf) {
-            // let loader = new THREE.GLTFLoader().setPath(path.join("file:", __dirname, "../asset/DamagedHelmet/glTF/"));
-            // return new Promise((resolve, reject) => {
-            //     loader.load('DamagedHelmet.gltf', function (gltf) {
-            // let loader = new THREE.GLTFLoader().setPath(path.join("file:", __dirname, "../asset/CesiumMilkTruck/glTF-Binary/"));
-            // return new Promise((resolve, reject) => {
-            //     loader.load('CesiumMilkTruck.glb', function (gltf) {
-
+        loader.load(modelName, function (gltf) {
             let scene = gltf.scene;
 
             _fixGLTFLoadedScene(scene);
 
-            scene.add(scene);
-
-            let [light, lightTarget] = _createDirectionLight();
-            light.wonder_target = lightTarget;
-
-            scene.add(light);
-            scene.add(lightTarget);
 
 
+            let directionalLight = null;
+            let directionLightTarget = null;
 
-            let camera = _createDefaultCamera(scene);
+            let sceneDirectionLights = [];
+            scene.traverse(function (child) {
+                if (child instanceof THREE.DirectionalLight) {
+                    sceneDirectionLights.push(child);
+                }
+            });
+
+            if (sceneDirectionLights.length > 0) {
+                directionalLight = sceneDirectionLights[0];
+                directionLightTarget = new THREE.Object3D();
+            }
+            else {
+                let [light, lightTarget] = _createDirectionLight();
+                directionalLight = light;
+                directionLightTarget = lightTarget;
+            }
+
+            directionalLight.wonder_target = directionLightTarget;
+
+            scene.add(directionalLight);
+            scene.add(directionLightTarget);
+
+
+
+
+            let camera = null;
+            // TODO support OrthoCamera
+            let scenePerspectiveCameras = [];
+            scene.traverse(function (child) {
+                if (child instanceof THREE.PerspectiveCamera) {
+                    scenePerspectiveCameras.push(child);
+                }
+            });
+
+            if (scenePerspectiveCameras.length > 0) {
+                camera = scenePerspectiveCameras[0];
+            }
+            else {
+                camera = _createDefaultCamera(scene);
+            }
 
             scene.wonder_camera = camera;
 
@@ -980,12 +1009,6 @@ let _setAllDp = (scene) => {
 
                 return result;
             },
-            getEulerAngles: (transform) => {
-                let result = _getFromEuler(new THREE.Euler().setFromQuaternion(_getRotation(transform)));
-
-                _log("getEulerAngles:", result);
-                return result;
-            },
             getScale: (transform) => {
                 let worldScale = new THREE.Vector3();
 
@@ -1151,6 +1174,19 @@ let _setAllDp = (scene) => {
                 _logMaterialData("getSpecularMapImageId:", result);
                 return result;
             },
+            getAlphaCutoff: (material) => {
+                _logMaterialData("getAlphaCutoff:", [material.transparent, material.alphaTest]);
+
+                if (material.transparent === true) {
+                    return 1.0;
+                }
+
+                if (material.alphaTest !== undefined) {
+                    return material.alphaTest;
+                }
+
+                return 0.0;
+            },
             isSame: (material1, material2) => {
                 let result = _getMaterialId(material1) === _getMaterialId(material2);
                 _logMaterialData("isSame:", result);
@@ -1193,6 +1229,9 @@ let _setAllDp = (scene) => {
                 let result = _getExistIndices(geometry);
                 _log("getIndices:", result);
                 return result;
+            },
+            isFlipTexCoordY: (geometry) => {
+                return false;
             },
             isSame: (geometry1, geometry2) => {
                 let result = _getGeometryId(geometry1) === _getGeometryId(geometry2);
@@ -1566,7 +1605,7 @@ let _convertBufferGeometryIndexToUint32Array = (bufferGeometry) => {
     }
 
 
-    if (indices instanceof Uint16Array) {
+    if (indices instanceof Uint16Array || indices instanceof Uint8Array) {
         let typeArr = indices;
         let result = [];
 
@@ -1581,7 +1620,7 @@ let _convertBufferGeometryIndexToUint32Array = (bufferGeometry) => {
         return bufferGeometry;
     }
 
-    _fatal("unknown index");
+    _fatal2("unknown indices:", indices);
 };
 
 let _convertSceneAllGeometries = (scene) => {
@@ -1600,17 +1639,27 @@ let _convertSceneAllGeometries = (scene) => {
     return scene;
 };
 
+
+let _loadGLTFModel = () => {
+    // return _loadGLTF("../asset/", "AlphaBlendModeTest.glb");
+    // return _loadGLTF("../asset/transmission_spheres/", "TransmissionSpheres.gltf");
+    // return _loadGLTF("../asset/Duck/glTF-Binary/", "Duck.glb");
+    // return _loadGLTF("../asset/Duck/glTF/", "Duck.gltf");
+    return _loadGLTF("../asset/Monster/glTF-lights/", "Monster.gltf");
+};
+
 async function _main() {
     // let [camera, scene] = _buildScene1();
     // let [camera, scene] = _buildScene2();
     // let [camera, scene] = _buildScene3();
-    let [camera, scene] = await _buildScene4();
+    let [camera, scene] = await _loadGLTFModel();
 
     scene = _convertSceneAllGeometries(scene);
 
     _setAllDp(scene);
 
     prepare([640, 480], 30);
+
 
     camera.updateMatrixWorld();
     scene.updateMatrixWorld();
