@@ -1,3 +1,4 @@
+
 var perf_hooks = require("perf_hooks");
 
 var wonderWebgpu = require("wonder-webgpu");
@@ -6,9 +7,9 @@ var wonderWebgpu = require("wonder-webgpu");
 
 
 global.self = global;
-// global.atob = require('atob');
+global.atob = require('atob');
 
-// global.Blob = require('cross-blob');
+global.Blob = require('cross-blob');
 
 
 // let sizeOf = require('image-size');
@@ -152,6 +153,19 @@ let _setImageData = (imageId, imageData) => {
 }
 
 
+
+let _isLoadGLTFFlag = false;
+
+let _isLoadGLTF = () => {
+    return _isLoadGLTFFlag;
+}
+
+let _markIsLoadGLTF = (isLoadGLTF) => {
+    _isLoadGLTFFlag = isLoadGLTF;
+}
+
+
+
 let _convertDegToRad = (degArr) => {
     let deg_to_rad = Math.PI / 180;
 
@@ -163,6 +177,9 @@ let _log = (param1, param2) => {
     // console.log(param1, param2);
 }
 
+let _logGeometryData = (param1, param2) => {
+    // console.log(param1, param2);
+}
 
 let _logMaterialData = (param1, param2) => {
     // console.log(param1, param2);
@@ -178,7 +195,7 @@ let _fatal2 = (message, data) => {
     throw new Error(message);
 }
 
-let _createCamera = (localPositionOpt) => {
+let _createCamera = (localPositionOpt, lookAtOpt) => {
     var localPosition = localPositionOpt !== undefined ? localPositionOpt : [
         0.1,
         1.1,
@@ -186,19 +203,29 @@ let _createCamera = (localPositionOpt) => {
     ];
 
 
-    let camera = new THREE.PerspectiveCamera(60, 640 / 480, 0.1, 1000);
+    let camera = new THREE.PerspectiveCamera(60, 640 / 480, 0.01, 100000);
 
     camera.position.set(localPosition[0], localPosition[1], localPosition[2]);
 
-    camera.lookAt(new THREE.Vector3(0, 0, 0));
+
+    var lookAt = lookAtOpt !== undefined ? lookAtOpt : [
+        0, 0, 0
+    ];
+
+    camera.lookAt(new THREE.Vector3(lookAt[0], lookAt[1], lookAt[2]));
 
     return camera;
 }
 
-let _createDirectionLight = () => {
+let _createDirectionLight = ([x, y, z]) => {
     let light = new THREE.DirectionalLight(0xffffff, 5.0);
 
-    light.position.set(0, 1, 0.3);
+    // light.position.set(0, 1, 0.3);
+    // light.position.set(0, 1, -0.3);
+    // light.position.set(0, 1, 1.0);
+    // light.position.set(0, 1, -1.0);
+    // light.position.set(0, 1, 1.0);
+    light.position.set(x, y, z);
 
     let target = new THREE.Object3D();
 
@@ -241,14 +268,6 @@ let _setMapRelatedData = (setMaterialMapFunc, mapImageIdOpt) => {
         [
             "metalRoughnessMap2",
             "./asset/DamagedHelmet/glTF/Default_metalRoughness.jpg"
-        ],
-
-
-
-        // TODO remove
-        [
-            "diffuseMap3",
-            "./mine/AlphaBlendLabels.png"
         ],
     ];
 
@@ -338,9 +357,9 @@ let _createSphere = (localPosition, localEulerAnglesOpt, radiusOpt, specularOpt,
     var roughness = roughnessOpt !== undefined ? roughnessOpt : 0.0;
     var transmission = transmissionOpt !== undefined ? transmissionOpt : 0.0;
     var diffuse = diffuseOpt !== undefined ? diffuseOpt : [
-        0.0,
-        0.0,
-        0.0
+        1.0,
+        1.0,
+        1.0
     ];
     var diffuseMapImageIdOpt = diffuseMapImageIdOptOpt !== undefined ? (diffuseMapImageIdOptOpt) : undefined;
     var normalMapImageIdOpt = normalMapImageIdOptOpt !== undefined ? (normalMapImageIdOptOpt) : undefined;
@@ -408,19 +427,24 @@ let _createPlane = (localPosition, localEulerAnglesOpt, widthOpt, heightOpt, spe
 
 let _hasMap = (map) => map !== undefined && map !== null;
 
-let _fixGLTFLoadedScene = (gltfScene) => {
-    gltfScene.traverse((object) => {
-        if (!object.material) {
-            return;
-        }
+// let _fixGLTFLoadedScene = (gltfScene) => {
+//     gltfScene.traverse((object) => {
+//         if (!object.material) {
+//             return;
+//         }
 
-        let material = object.material;
+//         let material = object.material;
 
-        if (_hasMap(material.map)) {
-            material.color.set(0.0, 0.0, 0.0);
-        }
-    });
-};
+//         if (_hasMap(material.map)) {
+//             material.color.set(0.0, 0.0, 0.0);
+//         }
+//     });
+// };
+
+
+let _getCameraFromScene = (scene) => scene.wonder_camera;
+
+let _setCameraToScene = (camera, scene) => scene.wonder_camera = camera;
 
 
 let _buildScene1 = () => {
@@ -470,7 +494,7 @@ let _buildScene1 = () => {
         ], undefined, undefined, undefined, undefined, undefined)
     );
 
-    scene.wonder_camera = camera;
+    _setCameraToScene(camera, scene);
 
     return [camera, scene];
 }
@@ -513,7 +537,7 @@ let _buildScene2 = () => {
         0
     ], undefined, undefined, 0.95, undefined, undefined, undefined, undefined, undefined, "diffuseMap2", "normalMap2", "emissionMap2", "metalRoughnessMap2", undefined));
 
-    scene.wonder_camera = camera;
+    _setCameraToScene(camera, scene);
 
     return [camera, scene];
 }
@@ -612,25 +636,24 @@ let _buildScene3 = () => {
         1
     ], undefined, undefined, undefined, undefined, undefined));
 
-    scene.wonder_camera = camera;
+    _setCameraToScene(camera, scene);
 
     return [camera, scene];
 }
 
-
-let _createDefaultCamera = (gltfScene) => {
+let _createDefaultCamera = (gltfScene, getCameraPositionFunc, getCameraTargetFunc) => {
     let box3 = new THREE.Box3().setFromObject(gltfScene);
 
     let boxSize = new THREE.Vector3();
     box3.getSize(boxSize);
 
-    return _createCamera([
-        - boxSize.x / 2 * 4, boxSize.y / 2 * 4, boxSize.z / 2 * 8
-        // 0, boxSize.y / 2 * 4, -boxSize.z / 2 * 20
-    ]);
+    return _createCamera(
+        getCameraPositionFunc(boxSize),
+        getCameraTargetFunc(boxSize)
+    );
 };
 
-let _loadGLTF = (modelDirPath, modelName) => {
+let _loadGLTF = ({ modelDirPath, modelName, directionLightPosition, getCameraPositionFunc, getCameraTargetFunc }) => {
     let path = require("path");
 
     let loader = new THREE.GLTFLoader().setPath(path.join("file:", __dirname, modelDirPath));
@@ -638,7 +661,7 @@ let _loadGLTF = (modelDirPath, modelName) => {
         loader.load(modelName, function (gltf) {
             let scene = gltf.scene;
 
-            _fixGLTFLoadedScene(scene);
+            // _fixGLTFLoadedScene(scene);
 
 
 
@@ -657,7 +680,7 @@ let _loadGLTF = (modelDirPath, modelName) => {
                 directionLightTarget = new THREE.Object3D();
             }
             else {
-                let [light, lightTarget] = _createDirectionLight();
+                let [light, lightTarget] = _createDirectionLight(directionLightPosition);
                 directionalLight = light;
                 directionLightTarget = lightTarget;
             }
@@ -683,10 +706,10 @@ let _loadGLTF = (modelDirPath, modelName) => {
                 camera = scenePerspectiveCameras[0];
             }
             else {
-                camera = _createDefaultCamera(scene);
+                camera = _createDefaultCamera(scene, getCameraPositionFunc, getCameraTargetFunc);
             }
 
-            scene.wonder_camera = camera;
+            _setCameraToScene(camera, scene);
 
             resolve([camera, scene]);
         });
@@ -724,7 +747,7 @@ let _isGeometryHasVertexData = (bufferGeometry) => {
 let _getNullablePoints = (bufferGeometry, attributeName) => {
     if (_hasAttribute(bufferGeometry, attributeName)) {
         let result = bufferGeometry.getAttribute(attributeName).array;
-        _log("get " + attributeName + ":", result);
+        _logGeometryData("get " + attributeName + ":", result);
         return result;
     }
 
@@ -734,7 +757,7 @@ let _getNullablePoints = (bufferGeometry, attributeName) => {
 let _getExistPoints = (bufferGeometry, attributeName) => {
     if (_hasAttribute(bufferGeometry, attributeName)) {
         let result = bufferGeometry.getAttribute(attributeName).array;
-        _log("get " + attributeName + ":", result);
+        _logGeometryData("get " + attributeName + ":", result);
         return result;
     }
 
@@ -745,6 +768,15 @@ let _isNeedComputeTangents = (bufferGeometry) => {
     return _hasAttribute(bufferGeometry, "position") && _hasAttribute(bufferGeometry, "normal") && _hasAttribute(bufferGeometry, "uv") && _hasIndices(bufferGeometry);
 };
 
+
+
+let _getChannelRoughnessMetallicMap = (material) => {
+    if (!(_hasMap(material.metalnessMap) && _hasMap(material.roughnessMap)) && !(!_hasMap(material.metalnessMap) && !_hasMap(material.roughnessMap))) {
+        _fatal("only support metallicRoughnessTexture, not support metallicTexture or rougnessTexture!")
+    }
+
+    return material.metalnessMap;
+}
 
 let _getMapImageData = (map) => {
     let { width, height, data } = map.image;
@@ -768,6 +800,33 @@ let _getMapImageIdAndSetImageData = (map) => {
 
     return undefined;
 };
+
+
+let _getMapImageWrap = (wrap) => {
+    if (wrap === THREE.ClampToEdgeWrapping) {
+        return 0;
+    }
+
+    if (wrap === THREE.RepeatWrapping) {
+        return 1;
+    }
+
+    if (wrap === THREE.MirroredRepeatWrapping) {
+        return 2;
+    }
+
+    _fatal("unknown wrap:" + wrap);
+}
+
+let _getMapImageWrapData = (map) => {
+    if (_hasMap(map)) {
+        return [_getMapImageWrap(map.wrapS), _getMapImageWrap(map.wrapT)];
+    }
+
+    return undefined;
+}
+
+
 
 let _setAllDp = (scene) => {
     let _getFromVector3 = (vec3) => {
@@ -868,6 +927,9 @@ let _setAllDp = (scene) => {
     };
 
 
+    let _getSceneGameObject = () => scene;
+
+
     setConfigDp({
         getIsDebug: (() => {
             return true;
@@ -882,7 +944,7 @@ let _setAllDp = (scene) => {
 
     setSceneGraphRepoDp({
         sceneRepo: {
-            getSceneGameObject: () => scene
+            getSceneGameObject: () => _getSceneGameObject()
         },
         gameObjectRepo: {
             getTransform: (gameObject) => {
@@ -961,9 +1023,15 @@ let _setAllDp = (scene) => {
                 return result;
             },
             getNormalMatrix: (transform) => {
+                let scene = _getSceneGameObject();
+                let camera = _getCameraFromScene(scene);
+
                 let result = _getFromMatrix3(
                     new THREE.Matrix3().getNormalMatrix(
-                        transform.matrixWorld
+                        new THREE.Matrix4().multiplyMatrices(
+                            camera.matrixWorldInverse,
+                            transform.matrixWorld
+                        )
                     )
                 );
 
@@ -1068,7 +1136,7 @@ let _setAllDp = (scene) => {
                 return result;
             },
             getActiveBasicCameraView: (scene) => {
-                let result = scene.wonder_camera;
+                let result = _getCameraFromScene(scene);
                 _log("getActiveBasicCameraView:", result);
                 return result;
             }
@@ -1102,7 +1170,8 @@ let _setAllDp = (scene) => {
         },
         bsdfMaterialRepo: {
             getDiffuseColor: (material) => {
-                let result = _getFromColor(material.color);
+                let [r, g, b] = _getFromColor(material.color);
+                let result = [r, g, b, material.opacity];
                 _logMaterialData("getDiffuseColor:", result);
                 return result;
             },
@@ -1146,11 +1215,7 @@ let _setAllDp = (scene) => {
                 return result;
             },
             getChannelRoughnessMetallicMapImageId: (material) => {
-                if (!(_hasMap(material.metalnessMap) && _hasMap(material.roughnessMap)) && !(!_hasMap(material.metalnessMap) && !_hasMap(material.roughnessMap))) {
-                    _fatal("only support metallicRoughnessTexture, not support metallicTexture or rougnessTexture!")
-                }
-
-                let result = _getMapImageIdAndSetImageData(material.metalnessMap);
+                let result = _getMapImageIdAndSetImageData(_getChannelRoughnessMetallicMap(material));
                 _logMaterialData("getChannelRoughnessMetallicMapImageId:", result);
                 return result;
             },
@@ -1192,7 +1257,37 @@ let _setAllDp = (scene) => {
                 _logMaterialData("isSame:", result);
                 return result;
             },
-            getId: _getMaterialId
+            getId: _getMaterialId,
+            getDiffuseMapImageWrapData: (material) => {
+                let result = _getMapImageWrapData(material.map);
+                _logMaterialData("getDiffuseMapImageWrapData:", result);
+                return result;
+            },
+            getChannelRoughnessMetallicMapImageWrapData: (material) => {
+                let result = _getMapImageWrapData(_getChannelRoughnessMetallicMap(material));
+                _logMaterialData("getChannelRoughnessMetallicMapImageWrapData:", result);
+                return result;
+            },
+            getEmissionMapImageWrapData: (material) => {
+                let result = _getMapImageWrapData(material.emissiveMap);
+                _logMaterialData("getEmissionMapImageWrapData:", result);
+                return result;
+            },
+            getNormalMapImageWrapData: (material) => {
+                let result = _getMapImageWrapData(material.normalMap);
+                _logMaterialData("getNormalMapImageWrapData:", result);
+                return result;
+            },
+            getTransmissionMapImageWrapData: (material) => {
+                let result = _getMapImageWrapData(material.transmissionMap);
+                _logMaterialData("getTransmissionMapImageWrapData:", result);
+                return result;
+            },
+            getSpecularMapImageWrapData: (material) => {
+                let result = undefined;
+                _logMaterialData("getSpecularMapImageWrapData:", result);
+                return result;
+            },
         },
         geometryRepo: {
             getVertices: (geometry) => {
@@ -1205,37 +1300,42 @@ let _setAllDp = (scene) => {
                 return _getNullablePoints(geometry, "uv");
             },
             getTangents: (geometry) => {
-                if (!_hasAttribute(geometry, "tangents")) {
+                if (!_hasAttribute(geometry, "tangent")) {
                     if (_isNeedComputeTangents(geometry)) {
                         THREE.BufferGeometryUtils.computeTangents(geometry);
 
                         let newResultData = _convertTangentsFromFourToThree(geometry.getAttribute("tangent").array);
 
-                        geometry.setAttribute("tangent", new THREE.BufferAttribute(newResultData, 4));
+                        _logGeometryData("getTangents:", newResultData);
 
                         return newResultData;
                     }
 
+                    _logGeometryData("getTangents:", undefined);
                     return undefined;
                 }
 
-                let result = geometry.getAttribute("tangent");
+                let result = _convertTangentsFromFourToThree(geometry.getAttribute("tangent").array);
 
-                _log("getTangents222:", result);
+                _logGeometryData("getTangents:", result);
 
-                return result.array;
+                return result;
             },
             getIndices: (geometry) => {
                 let result = _getExistIndices(geometry);
-                _log("getIndices:", result);
+                _logGeometryData("getIndices:", result);
                 return result;
             },
             isFlipTexCoordY: (geometry) => {
-                return false;
+                if (_isLoadGLTF()) {
+                    return false;
+                }
+
+                return true;
             },
             isSame: (geometry1, geometry2) => {
                 let result = _getGeometryId(geometry1) === _getGeometryId(geometry2);
-                _log("isSame:", result);
+                _logGeometryData("isSame:", result);
                 return result;
             },
             getId: _getGeometryId
@@ -1464,8 +1564,10 @@ let _setAllDp = (scene) => {
         capacity: {
             getTextureArrayLayerSize: (function (param) {
                 return [
-                    2048,
-                    2048
+                    // 2048,
+                    // 2048
+                    4096,
+                    4096
                 ];
             }),
             getTextureArrayMaxLayerCount: (function (param) {
@@ -1641,12 +1743,62 @@ let _convertSceneAllGeometries = (scene) => {
 
 
 let _loadGLTFModel = () => {
+    _markIsLoadGLTF(true);
+
+    let gltfModelData = {
+        my_little_pony_dream_house: {
+            modelDirPath: "../asset/my_little_pony_dream_house/",
+            modelName: "scene.gltf",
+            directionLightPosition: [0, 1, -1.0],
+            getCameraPositionFunc: boxSize => [
+                0, boxSize.y / 2, -boxSize.z / 2 * 3
+            ],
+            getCameraTargetFunc: boxSize => [0, 0, 0]
+        },
+        lamborghini: {
+            modelDirPath: "../asset/lamborghini/",
+            modelName: "scene.gltf",
+            directionLightPosition: [0, 1, 1.0],
+            getCameraPositionFunc: boxSize => [
+                0, boxSize.y / 2 * 2, boxSize.z / 2 * 6
+            ],
+            getCameraTargetFunc: boxSize => [0, 0, 0]
+        },
+        room: {
+            modelDirPath: "../asset/room/",
+            modelName: "scene.gltf",
+            directionLightPosition: [0, 1, 1.0],
+            getCameraPositionFunc: boxSize => [
+                -10.73, 4.78, 14.51
+
+            ],
+            getCameraTargetFunc: boxSize =>
+                [0.57, -0.25, -0.78]
+        },
+    };
+
+    // return _loadGLTF("../asset/", "SimpleSkinning.gltf");
+    // return _loadGLTF("../asset/DamagedHelmet/glTF/", "DamagedHelmet.gltf");
     // return _loadGLTF("../asset/", "AlphaBlendModeTest.glb");
     // return _loadGLTF("../asset/transmission_spheres/", "TransmissionSpheres.gltf");
     // return _loadGLTF("../asset/Duck/glTF-Binary/", "Duck.glb");
     // return _loadGLTF("../asset/Duck/glTF/", "Duck.gltf");
-    return _loadGLTF("../asset/Monster/glTF-lights/", "Monster.gltf");
+    // return _loadGLTF("../asset/Monster/glTF-lights/", "Monster.gltf");
+    // return _loadGLTF("../asset/elf_girl/", "scene.gltf");
+    // return _loadGLTF("../mine/day_of_the_dead_environment/", "scene.gltf");
+    // return _loadGLTF("../mine/miku/", "scene.gltf");
+
+    // return _loadGLTF("../asset/chibi_house/", "scene.gltf");
+    // return _loadGLTF("../asset/default_house/", "scene.gltf");
+    // return _loadGLTF("../asset/lamborghini/", "scene.gltf");
+    // return _loadGLTF("../asset/conference_room1/", "scene.gltf");
+
+
+    return _loadGLTF(
+        gltfModelData.room
+    );
 };
+
 
 async function _main() {
     // let [camera, scene] = _buildScene1();

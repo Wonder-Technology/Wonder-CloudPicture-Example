@@ -2874,6 +2874,18 @@ THREE.GLTFLoader = (function () {
 
 			return parser.getDependency('accessor', accessorIndex)
 				.then(function (accessor) {
+					if (attributeName == "normal") {
+						// console.log(attributeName, accessor.array);
+
+
+						// let array = accessor.array;
+						// for (let i = 0; i < array.length; i += 3) {
+						// 	if (array[i] == 0 && array[i + 1] == 0 && array[i + 2] == 0) {
+						// 		console.log("aaa")
+						// 	}
+						// }
+					}
+
 
 					geometry.setAttribute(attributeName, accessor);
 
@@ -2884,6 +2896,8 @@ THREE.GLTFLoader = (function () {
 		for (var gltfAttributeName in attributes) {
 
 			var threeAttributeName = ATTRIBUTES[gltfAttributeName] || gltfAttributeName.toLowerCase();
+
+			// console.log(gltfAttributeName, threeAttributeName in geometry.attributes);
 
 			// Skip attributes already provided by e.g. Draco extension.
 			if (threeAttributeName in geometry.attributes) continue;
