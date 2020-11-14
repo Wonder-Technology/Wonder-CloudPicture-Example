@@ -670,9 +670,11 @@ let _findMaxMapSize = (scene) => {
                     _getChannelRoughnessMetallicMap(material)
                 ].reduce(([width, height], map) => {
                     if (_hasMap(map)) {
+                        let image = map.image;
+
                         return [
-                            map.width > width ? map.width : width,
-                            map.height > height ? map.height : height,
+                            image.width > width ? image.width : width,
+                            image.height > height ? image.height : height,
                         ]
                     }
 
@@ -695,6 +697,7 @@ let _loadGLTF = ({ modelDirPath, modelName, directionLightPosition, getCameraPos
             // _fixGLTFLoadedScene(scene);
 
             let [mapMaxWidth, mapMaxHeight] = _findMaxMapSize(scene);
+
 
             setTextureArrayLayerSize(mapMaxWidth, mapMaxHeight);
 
@@ -1062,15 +1065,9 @@ let _setAllDp = (scene) => {
                 return result;
             },
             getNormalMatrix: (transform) => {
-                let scene = _getSceneGameObject();
-                let camera = _getCameraFromScene(scene);
-
                 let result = _getFromMatrix3(
                     new THREE.Matrix3().getNormalMatrix(
-                        new THREE.Matrix4().multiplyMatrices(
-                            camera.matrixWorldInverse,
-                            transform.matrixWorld
-                        )
+                        transform.matrixWorld
                     )
                 );
 
@@ -1139,7 +1136,17 @@ let _setAllDp = (scene) => {
             getDirection: (light) => {
                 let target = light.wonder_target;
 
-                let result = _getFromVector3(new THREE.Vector3().copy(light.position).sub(target.position));
+                let result = new THREE.Vector3();
+                result = _getFromVector3(
+                    result.setFromMatrixPosition(
+                        light.matrixWorld
+                    )
+                        .sub(
+                            new THREE.Vector3().setFromMatrixPosition(
+                                target.matrixWorld
+                            )
+                        )
+                );
                 _log("getDirection:", result);
                 return result;
             },
@@ -1331,7 +1338,7 @@ let _setAllDp = (scene) => {
             },
             isDoubleSide: (material) => {
                 let result = material.side === THREE.DoubleSide;
-                console.log("isDoubleSide:", result);
+                _logMaterialData("isDoubleSide:", result);
                 return result;
             },
         },
@@ -1830,13 +1837,82 @@ let _loadGLTFModel = () => {
             getCameraTargetFunc: boxSize =>
                 [0.57, -0.25, -0.78]
         },
+        appartment_vr: {
+            modelDirPath: "../asset/appartment_vr/",
+            modelName: "scene.gltf",
+            directionLightPosition: [0, 1, -1.0],
+            getCameraPositionFunc: boxSize => [
+                823.71, 25.49, -632.46
+            ],
+            getCameraTargetFunc: boxSize => [
+                -0.79, -0.02, 0.608
+            ]
+        },
+        // furniture:{
+        //     modelDirPath: "../asset/",
+        //     modelName: "92b2b5da-1b6b-43ae-b496-e39119a1769c.glb",
+        //     directionLightPosition: [0, 1, -1.0],
+        //     getCameraPositionFunc: boxSize => [
+        //         3.286,
+        //         3.424,
+        //         2.122
+        //     ],
+        //     getCameraTargetFunc: boxSize => [
+        //         -0.621,-0.648,
+        //         -0.439
+        //     ]
+        // }
+
+
+        motorcycle: {
+            modelDirPath: "../asset/",
+            modelName: "摩托车.gltf",
+            directionLightPosition: [0, 1, 1.0],
+            getCameraPositionFunc: boxSize => [
+                1.07,
+                8.974,
+                9.59
+            ],
+            getCameraTargetFunc: boxSize => [
+                -0.08,
+                -0.67,
+                -0.73
+            ]
+        },
+
+        cube: {
+            modelDirPath: "../asset/",
+            modelName: "正方形.gltf",
+            directionLightPosition: [0, 1.0, 0.1],
+            getCameraPositionFunc: boxSize => [
+                0, boxSize.y / 2 * 2, boxSize.z / 2 * 4
+            ],
+            getCameraTargetFunc: boxSize => [0, 0, 0]
+        },
+        test1: {
+            modelDirPath: "../asset/",
+            modelName: "几何体11.gltf",
+            directionLightPosition: [0, 1.0, 1.0],
+            getCameraPositionFunc: boxSize => [
+                0, boxSize.y / 2 * 8, boxSize.z / 2 / 2
+            ],
+            getCameraTargetFunc: boxSize => [0, 0, 0]
+        }
     };
 
     return _loadGLTF(
-        gltfModelData.room
+        // gltfModelData.room
         // gltfModelData.my_little_pony_dream_house
         // gltfModelData.lamborghini
         // gltfModelData.DamagedHelmet
+        // gltfModelData.appartment_vr
+
+        // gltfModelData.furniture
+        // gltfModelData.motorcycle
+
+        // gltfModelData.cube
+
+        gltfModelData.test1
     );
 };
 
