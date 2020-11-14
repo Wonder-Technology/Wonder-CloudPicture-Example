@@ -1752,6 +1752,15 @@ let _getExistIndices = (bufferGeometry) => {
     _fatal("geometry should has indices!");
 }
 
+let _generateIndices = (vertexCount) => {
+    let result = [];
+    for (let i = 0; i < vertexCount; i++) {
+        result.push(i);
+    }
+
+    return result;
+};
+
 let _convertBufferGeometryIndexToUint32Array = (bufferGeometry) => {
     let indices = _getExistIndices(bufferGeometry);
 
@@ -1785,6 +1794,20 @@ let _convertSceneAllGeometries = (scene) => {
         }
 
         let geometry = _getBufferGeometry(object.geometry);
+
+
+        if (!_hasIndices(geometry)) {
+            geometry.setIndex(
+                _generateIndices(
+                    _getExistPoints(geometry, "position").length / 3
+                )
+            );
+        }
+
+        if (!_hasAttribute(geometry, "normal")) {
+            geometry.computeFaceNormals();
+            geometry.computeVertexNormals();
+        }
 
         geometry = _convertBufferGeometryIndexToUint32Array(geometry);
 
@@ -1848,25 +1871,25 @@ let _loadGLTFModel = () => {
                 -0.79, -0.02, 0.608
             ]
         },
-        // furniture:{
-        //     modelDirPath: "../asset/",
-        //     modelName: "92b2b5da-1b6b-43ae-b496-e39119a1769c.glb",
-        //     directionLightPosition: [0, 1, -1.0],
-        //     getCameraPositionFunc: boxSize => [
-        //         3.286,
-        //         3.424,
-        //         2.122
-        //     ],
-        //     getCameraTargetFunc: boxSize => [
-        //         -0.621,-0.648,
-        //         -0.439
-        //     ]
-        // }
+        furniture:{
+            modelDirPath: "../asset/",
+            modelName: "92b2b5da-1b6b-43ae-b496-e39119a1769c.glb",
+            directionLightPosition: [0, 1, -1.0],
+            getCameraPositionFunc: boxSize => [
+                3.286,
+                3.424,
+                2.122
+            ],
+            getCameraTargetFunc: boxSize => [
+                -0.621,-0.648,
+                -0.439
+            ]
+        },
 
 
         motorcycle: {
             modelDirPath: "../asset/",
-            modelName: "摩托车.gltf",
+            modelName: "c8556e38-643e-467c-94ec-19f6602f51f0.glb",
             directionLightPosition: [0, 1, 1.0],
             getCameraPositionFunc: boxSize => [
                 1.07,
@@ -1897,6 +1920,24 @@ let _loadGLTFModel = () => {
                 0, boxSize.y / 2 * 8, boxSize.z / 2 / 2
             ],
             getCameraTargetFunc: boxSize => [0, 0, 0]
+        },
+        test2: {
+            modelDirPath: "../asset/",
+            modelName: "几何体2.gltf",
+            directionLightPosition: [0, 1.0, 1.0],
+            getCameraPositionFunc: boxSize => [
+                - boxSize.x / 2, boxSize.y / 2 * 4, boxSize.z / 2* 2
+            ],
+            getCameraTargetFunc: boxSize => [0, 0, 0]
+        },
+        woodDesk: {
+            modelDirPath: "../asset/",
+            modelName: "木桌.gltf",
+            directionLightPosition: [0, 1.0, 1.0],
+            getCameraPositionFunc: boxSize => [
+                - boxSize.x / 2, boxSize.y / 2 * 4, boxSize.z / 2* 2
+            ],
+            getCameraTargetFunc: boxSize => [0, 0, 0]
         }
     };
 
@@ -1908,11 +1949,12 @@ let _loadGLTFModel = () => {
         // gltfModelData.appartment_vr
 
         // gltfModelData.furniture
-        // gltfModelData.motorcycle
+        gltfModelData.motorcycle
 
         // gltfModelData.cube
 
-        gltfModelData.test1
+        // gltfModelData.test1
+        // gltfModelData.test2
     );
 };
 
