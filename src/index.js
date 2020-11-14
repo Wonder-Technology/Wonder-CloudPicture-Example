@@ -141,6 +141,9 @@ var { set: setWebGPURayTracingDp } = require("wonder.js/lib/js/src/run/external_
 var { set: setTimeDp } = require("wonder.js/lib/js/src/run/external_layer/api/dependency/TimeDpCPAPI.bs.js");
 var { set: setConfigDp } = require("wonder.js/lib/js/src/run/external_layer/api/dependency/ConfigDpCPAPI.bs.js");
 var { prepare, init, update, render } = require("wonder.js/lib/js/src/run/external_layer/api/DirectorCPAPI.bs.js");
+var { setTextureArrayLayerSize } = require("wonder.js/lib/js/src/run/external_layer/api/WebGPUCPAPI.bs.js");
+
+
 
 let _imageDataMap = {};
 
@@ -225,7 +228,7 @@ let _createDirectionLight = ([x, y, z]) => {
     // light.position.set(0, 1, 1.0);
     // light.position.set(0, 1, -1.0);
     // light.position.set(0, 1, 1.0);
-    light.position.set(x, y, z);
+    light.position.set(x, y, z).normalize();
 
     let target = new THREE.Object3D();
 
@@ -653,6 +656,34 @@ let _createDefaultCamera = (gltfScene, getCameraPositionFunc, getCameraTargetFun
     );
 };
 
+let _findMaxMapSize = (scene) => {
+    let maxMapSize = [2048, 2048];
+
+    scene.traverse(function (child) {
+        if (child instanceof THREE.Mesh) {
+            let material = child.material;
+
+            maxMapSize =
+                [
+                    _getDiffuseMap(material),
+                    _getNormalMap(material),
+                    _getChannelRoughnessMetallicMap(material)
+                ].reduce(([width, height], map) => {
+                    if (_hasMap(map)) {
+                        return [
+                            map.width > width ? map.width : width,
+                            map.height > height ? map.height : height,
+                        ]
+                    }
+
+                    return [width, height];
+                }, maxMapSize);
+        }
+    });
+
+    return maxMapSize;
+};
+
 let _loadGLTF = ({ modelDirPath, modelName, directionLightPosition, getCameraPositionFunc, getCameraTargetFunc }) => {
     let path = require("path");
 
@@ -662,6 +693,11 @@ let _loadGLTF = ({ modelDirPath, modelName, directionLightPosition, getCameraPos
             let scene = gltf.scene;
 
             // _fixGLTFLoadedScene(scene);
+
+            let [mapMaxWidth, mapMaxHeight] = _findMaxMapSize(scene);
+
+            setTextureArrayLayerSize(mapMaxWidth, mapMaxHeight);
+
 
 
 
@@ -769,6 +805,9 @@ let _isNeedComputeTangents = (bufferGeometry) => {
 };
 
 
+let _getDiffuseMap = (material) => material.map;
+
+let _getNormalMap = (material) => material.normalMap;
 
 let _getChannelRoughnessMetallicMap = (material) => {
     if (!(_hasMap(material.metalnessMap) && _hasMap(material.roughnessMap)) && !(!_hasMap(material.metalnessMap) && !_hasMap(material.roughnessMap))) {
@@ -1210,7 +1249,9 @@ let _setAllDp = (scene) => {
                 return result;
             },
             getDiffuseMapImageId: (material) => {
-                let result = _getMapImageIdAndSetImageData(material.map);
+                let result = _getMapImageIdAndSetImageData(
+                    _getDiffuseMap(material)
+                );
                 _logMaterialData("getDiffuseMapImageId:", result);
                 return result;
             },
@@ -1225,7 +1266,7 @@ let _setAllDp = (scene) => {
                 return result;
             },
             getNormalMapImageId: (material) => {
-                let result = _getMapImageIdAndSetImageData(material.normalMap);
+                let result = _getMapImageIdAndSetImageData(_getNormalMap(material));
                 _logMaterialData("getNormalMapImageId:", result);
                 return result;
             },
@@ -1259,7 +1300,7 @@ let _setAllDp = (scene) => {
             },
             getId: _getMaterialId,
             getDiffuseMapImageWrapData: (material) => {
-                let result = _getMapImageWrapData(material.map);
+                let result = _getMapImageWrapData(_getDiffuseMap(material));
                 _logMaterialData("getDiffuseMapImageWrapData:", result);
                 return result;
             },
@@ -1274,7 +1315,7 @@ let _setAllDp = (scene) => {
                 return result;
             },
             getNormalMapImageWrapData: (material) => {
-                let result = _getMapImageWrapData(material.normalMap);
+                let result = _getMapImageWrapData(_getNormalMap(material));
                 _logMaterialData("getNormalMapImageWrapData:", result);
                 return result;
             },
@@ -1286,6 +1327,11 @@ let _setAllDp = (scene) => {
             getSpecularMapImageWrapData: (material) => {
                 let result = undefined;
                 _logMaterialData("getSpecularMapImageWrapData:", result);
+                return result;
+            },
+            isDoubleSide: (material) => {
+                let result = material.side === THREE.DoubleSide;
+                console.log("isDoubleSide:", result);
                 return result;
             },
         },
@@ -1562,14 +1608,14 @@ let _setAllDp = (scene) => {
             return _loadShaderFile("./node_modules/wonder.js/" + srcPath);
         }),
         capacity: {
-            getTextureArrayLayerSize: (function (param) {
-                return [
-                    // 2048,
-                    // 2048
-                    4096,
-                    4096
-                ];
-            }),
+            // getTextureArrayLayerSize: (function (param) {
+            //     return [
+            //         // 2048,
+            //         // 2048
+            //         4096,
+            //         4096
+            //     ];
+            // }),
             getTextureArrayMaxLayerCount: (function (param) {
                 return 2048;
             })
@@ -1746,6 +1792,15 @@ let _loadGLTFModel = () => {
     _markIsLoadGLTF(true);
 
     let gltfModelData = {
+        DamagedHelmet: {
+            modelDirPath: "../asset/DamagedHelmet/gltf/",
+            modelName: "DamagedHelmet.gltf",
+            directionLightPosition: [0, 1, 1.0],
+            getCameraPositionFunc: boxSize => [
+                0, boxSize.y / 2, boxSize.z / 2 * 3
+            ],
+            getCameraTargetFunc: boxSize => [0, 0, 0]
+        },
         my_little_pony_dream_house: {
             modelDirPath: "../asset/my_little_pony_dream_house/",
             modelName: "scene.gltf",
@@ -1777,25 +1832,11 @@ let _loadGLTFModel = () => {
         },
     };
 
-    // return _loadGLTF("../asset/", "SimpleSkinning.gltf");
-    // return _loadGLTF("../asset/DamagedHelmet/glTF/", "DamagedHelmet.gltf");
-    // return _loadGLTF("../asset/", "AlphaBlendModeTest.glb");
-    // return _loadGLTF("../asset/transmission_spheres/", "TransmissionSpheres.gltf");
-    // return _loadGLTF("../asset/Duck/glTF-Binary/", "Duck.glb");
-    // return _loadGLTF("../asset/Duck/glTF/", "Duck.gltf");
-    // return _loadGLTF("../asset/Monster/glTF-lights/", "Monster.gltf");
-    // return _loadGLTF("../asset/elf_girl/", "scene.gltf");
-    // return _loadGLTF("../mine/day_of_the_dead_environment/", "scene.gltf");
-    // return _loadGLTF("../mine/miku/", "scene.gltf");
-
-    // return _loadGLTF("../asset/chibi_house/", "scene.gltf");
-    // return _loadGLTF("../asset/default_house/", "scene.gltf");
-    // return _loadGLTF("../asset/lamborghini/", "scene.gltf");
-    // return _loadGLTF("../asset/conference_room1/", "scene.gltf");
-
-
     return _loadGLTF(
         gltfModelData.room
+        // gltfModelData.my_little_pony_dream_house
+        // gltfModelData.lamborghini
+        // gltfModelData.DamagedHelmet
     );
 };
 
