@@ -474,14 +474,11 @@ THREE.GLTFLoader = (function () {
 
 		if (lightIndex === undefined) return null;
 
-		//Wonder TODO remove
-		// return this._loadLight(lightIndex).then(function (light) {
+		return this._loadLight(lightIndex).then(function (light) {
 
-		// 	return parser._getNodeRef(self.cache, lightIndex, light);
+			return parser._getNodeRef(self.cache, lightIndex, light);
 
-		// });
-		return null;
-
+		});
 	};
 
 	/**

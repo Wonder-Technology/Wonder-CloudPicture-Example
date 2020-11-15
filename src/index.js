@@ -1,4 +1,5 @@
 
+
 var perf_hooks = require("perf_hooks");
 
 var wonderWebgpu = require("wonder-webgpu");
@@ -198,7 +199,7 @@ let _fatal2 = (message, data) => {
     throw new Error(message);
 }
 
-let _createCamera = (localPositionOpt, lookAtOpt) => {
+let _createCamera = (localPositionOpt, lookAtOpt, cameraQuaternionOpt) => {
     var localPosition = localPositionOpt !== undefined ? localPositionOpt : [
         0.1,
         1.1,
@@ -210,18 +211,22 @@ let _createCamera = (localPositionOpt, lookAtOpt) => {
 
     camera.position.set(localPosition[0], localPosition[1], localPosition[2]);
 
+    if (lookAtOpt !== undefined) {
+        var lookAt = lookAtOpt;
+        camera.lookAt(new THREE.Vector3(lookAt[0], lookAt[1], lookAt[2]));
+    }
+    else if (cameraQuaternionOpt !== undefined) {
+        var cameraQuaternion = cameraQuaternionOpt;
+        camera.quaternion.set(cameraQuaternion[0], cameraQuaternion[1], cameraQuaternion[2], cameraQuaternion[3]);
+    }
 
-    var lookAt = lookAtOpt !== undefined ? lookAtOpt : [
-        0, 0, 0
-    ];
-
-    camera.lookAt(new THREE.Vector3(lookAt[0], lookAt[1], lookAt[2]));
 
     return camera;
 }
 
 let _createDirectionLight = ([x, y, z]) => {
     let light = new THREE.DirectionalLight(0xffffff, 5.0);
+    // let light = new THREE.DirectionalLight(0xffffff, 1.0);
 
     // light.position.set(0, 1, 0.3);
     // light.position.set(0, 1, -0.3);
@@ -644,16 +649,19 @@ let _buildScene3 = () => {
     return [camera, scene];
 }
 
-let _createDefaultCamera = (gltfScene, getCameraPositionFunc, getCameraTargetFunc) => {
+let _createDefaultCamera = (gltfScene, cameraQuaternion, getCameraPositionFunc, getCameraTargetFunc) => {
     let box3 = new THREE.Box3().setFromObject(gltfScene);
 
     let boxSize = new THREE.Vector3();
     box3.getSize(boxSize);
 
-    return _createCamera(
+    let camera = _createCamera(
         getCameraPositionFunc(boxSize),
-        getCameraTargetFunc(boxSize)
+        getCameraTargetFunc(boxSize),
+        cameraQuaternion,
     );
+
+    return camera;
 };
 
 let _findMaxMapSize = (scene) => {
@@ -686,7 +694,10 @@ let _findMaxMapSize = (scene) => {
     return maxMapSize;
 };
 
-let _loadGLTF = ({ modelDirPath, modelName, directionLightPosition, getCameraPositionFunc, getCameraTargetFunc }) => {
+let _loadGLTF = ({ modelDirPath, modelName, modelScale, directionLightPosition, getCameraPositionFunc, getCameraTargetFunc, cameraQuaternion }) => {
+    modelScale = modelScale === undefined ? 1.0 : modelScale;
+    cameraQuaternion = cameraQuaternion === undefined ? [0.0, 0.0, 0.0, 1.0] : cameraQuaternion;
+
     let path = require("path");
 
     let loader = new THREE.GLTFLoader().setPath(path.join("file:", __dirname, modelDirPath));
@@ -695,6 +706,8 @@ let _loadGLTF = ({ modelDirPath, modelName, directionLightPosition, getCameraPos
             let scene = gltf.scene;
 
             // _fixGLTFLoadedScene(scene);
+
+            scene.scale.set(modelScale, modelScale, modelScale);
 
             let [mapMaxWidth, mapMaxHeight] = _findMaxMapSize(scene);
 
@@ -745,7 +758,7 @@ let _loadGLTF = ({ modelDirPath, modelName, directionLightPosition, getCameraPos
                 camera = scenePerspectiveCameras[0];
             }
             else {
-                camera = _createDefaultCamera(scene, getCameraPositionFunc, getCameraTargetFunc);
+                camera = _createDefaultCamera(scene, cameraQuaternion, getCameraPositionFunc, getCameraTargetFunc);
             }
 
             _setCameraToScene(camera, scene);
@@ -1849,16 +1862,26 @@ let _loadGLTFModel = () => {
             ],
             getCameraTargetFunc: boxSize => [0, 0, 0]
         },
-        room: {
-            modelDirPath: "../asset/room/",
+        room1: {
+            modelDirPath: "../asset/room1/",
             modelName: "scene.gltf",
             directionLightPosition: [0, 1, 1.0],
             getCameraPositionFunc: boxSize => [
                 -10.73, 4.78, 14.51
-
             ],
             getCameraTargetFunc: boxSize =>
                 [0.57, -0.25, -0.78]
+        },
+        room2: {
+            modelDirPath: "../asset/room2/",
+            modelName: "scene.gltf",
+            modelScale: 0.00001,
+            directionLightPosition: [0, 1, 1.0],
+            cameraQuaternion: [-0.1309, 0.04997, -0.0487, 0.9889],
+            getCameraPositionFunc: boxSize => [
+                1.7201, -1.5096, 0.1766
+            ],
+            getCameraTargetFunc: boxSize => undefined,
         },
         appartment_vr: {
             modelDirPath: "../asset/appartment_vr/",
@@ -1871,22 +1894,21 @@ let _loadGLTFModel = () => {
                 -0.79, -0.02, 0.608
             ]
         },
-        furniture:{
-            modelDirPath: "../asset/",
-            modelName: "92b2b5da-1b6b-43ae-b496-e39119a1769c.glb",
-            directionLightPosition: [0, 1, -1.0],
-            getCameraPositionFunc: boxSize => [
-                3.286,
-                3.424,
-                2.122
-            ],
-            getCameraTargetFunc: boxSize => [
-                -0.621,-0.648,
-                -0.439
-            ]
-        },
-
-
+        // TODO need check: this model cause run fail!why???
+        // furniture:{
+        //     modelDirPath: "../asset/",
+        //     modelName: "92b2b5da-1b6b-43ae-b496-e39119a1769c.glb",
+        //     directionLightPosition: [0, 1, -1.0],
+        //     getCameraPositionFunc: boxSize => [
+        //         3.286,
+        //         3.424,
+        //         2.122
+        //     ],
+        //     getCameraTargetFunc: boxSize => [
+        //         -0.621,-0.648,
+        //         -0.439
+        //     ]
+        // },
         motorcycle: {
             modelDirPath: "../asset/",
             modelName: "c8556e38-643e-467c-94ec-19f6602f51f0.glb",
@@ -1926,7 +1948,7 @@ let _loadGLTFModel = () => {
             modelName: "几何体2.gltf",
             directionLightPosition: [0, 1.0, 1.0],
             getCameraPositionFunc: boxSize => [
-                - boxSize.x / 2, boxSize.y / 2 * 4, boxSize.z / 2* 2
+                - boxSize.x / 2, boxSize.y / 2 * 4, boxSize.z / 2 * 2
             ],
             getCameraTargetFunc: boxSize => [0, 0, 0]
         },
@@ -1935,10 +1957,11 @@ let _loadGLTFModel = () => {
             modelName: "木桌.gltf",
             directionLightPosition: [0, 1.0, 1.0],
             getCameraPositionFunc: boxSize => [
-                - boxSize.x / 2, boxSize.y / 2 * 4, boxSize.z / 2* 2
+                - boxSize.x / 2, boxSize.y / 2 * 4, boxSize.z / 2 * 2
             ],
             getCameraTargetFunc: boxSize => [0, 0, 0]
-        }
+        },
+
     };
 
     return _loadGLTF(
@@ -1948,8 +1971,11 @@ let _loadGLTFModel = () => {
         // gltfModelData.DamagedHelmet
         // gltfModelData.appartment_vr
 
+        gltfModelData.room1
+        // gltfModelData.room2
+
         // gltfModelData.furniture
-        gltfModelData.motorcycle
+        // gltfModelData.motorcycle
 
         // gltfModelData.cube
 
