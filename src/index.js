@@ -176,7 +176,6 @@ let _convertDegToRad = (degArr) => {
     return degArr.map((deg) => deg * deg_to_rad);
 };
 
-
 let _warn = (message) => {
     console.warn(message);
 }
@@ -1179,7 +1178,7 @@ let _setAllDp = (scene) => {
                 });
 
                 if (result.length > 1) {
-                    console.warn("direction lights' length > 1! only use the first one!");
+                    _warn("direction lights' length > 1! only use the first one!");
 
                     result = [result[0]];
                 }
@@ -1971,16 +1970,17 @@ let _loadGLTFModel = () => {
         //     ],
         //     getCameraTargetFunc: boxSize => [0, 0, 0]
         // },
+
     };
 
     return _loadGLTF(
         // gltfModelData.my_little_pony_dream_house
         // gltfModelData.lamborghini
-        // gltfModelData.DamagedHelmet
-        // gltfModelData.outdoor1
+        gltfModelData.DamagedHelmet
 
-        gltfModelData.room1
-        // gltfModelData.outdoor2
+        // gltfModelData.room1
+        // gltfModelData.outdoor1
+        // gltfModelData.outdoor1
 
         // gltfModelData.furniture
         // gltfModelData.motorcycle
@@ -2005,8 +2005,7 @@ let _setMaterialEmissionToZeroIfTransparent = (scene) => {
         let material = object.material;
 
         if (_isMaterialTransparent(material)) {
-            _warn("set emission to zero!");
-
+            _warn("set emission to zero under transparent!");
             material.emissive = new THREE.Color(0.0, 0.0, 0.0);
         }
 
@@ -2016,15 +2015,33 @@ let _setMaterialEmissionToZeroIfTransparent = (scene) => {
     return scene;
 };
 
+
+let _checkNormalScale = (scene) => {
+    scene.traverse(function (object) {
+        if (!object.material) {
+            return;
+        }
+
+        let material = object.material;
+
+        if (material.normalScale !== undefined && !(material.normalScale.x === 1 && Math.abs(material.normalScale.y) === 1)) {
+            _warn("not support normalScale!");
+        }
+    });
+};
+
 async function _main() {
     // let [camera, scene] = _buildScene1();
     // let [camera, scene] = _buildScene2();
     // let [camera, scene] = _buildScene3();
     let [camera, scene] = await _loadGLTFModel();
 
+    _checkNormalScale(scene);
+
     scene = _convertSceneAllGeometries(scene);
 
     scene = _setMaterialEmissionToZeroIfTransparent(scene);
+
 
     _setAllDp(scene);
 
