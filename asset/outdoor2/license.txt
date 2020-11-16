@@ -1,0 +1,11 @@
+Model Information:
+* title:	Проект загородного дома Валенсия
+* source:	https://sketchfab.com/3d-models/4ff8c7c446fc49389274484d9bee4bbe
+* author:	spb-optima (https://sketchfab.com/spb-optima)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Проект загородного дома Валенсия" (https://sketchfab.com/3d-models/4ff8c7c446fc49389274484d9bee4bbe) by spb-optima (https://sketchfab.com/spb-optima) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

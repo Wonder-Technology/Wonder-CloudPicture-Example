@@ -1,0 +1,11 @@
+Model Information:
+* title:	Appartment Vr
+* source:	https://sketchfab.com/3d-models/appartment-vr-b45ffb6707c144c4b9228917ff259e34
+* author:	rakshith (https://sketchfab.com/rakshith)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Appartment Vr" (https://sketchfab.com/3d-models/appartment-vr-b45ffb6707c144c4b9228917ff259e34) by rakshith (https://sketchfab.com/rakshith) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

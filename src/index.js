@@ -177,6 +177,10 @@ let _convertDegToRad = (degArr) => {
 };
 
 
+let _warn = (message) => {
+    console.warn(message);
+}
+
 let _log = (param1, param2) => {
     // console.log(param1, param2);
 }
@@ -224,7 +228,9 @@ let _createCamera = (localPositionOpt, lookAtOpt, cameraQuaternionOpt) => {
     return camera;
 }
 
-let _createDirectionLight = ([x, y, z]) => {
+let _createDirectionLight = (positionOpt) => {
+    let [x, y, z] = positionOpt === undefined ? [0, 1, 1] : positionOpt;
+
     let light = new THREE.DirectionalLight(0xffffff, 5.0);
     // let light = new THREE.DirectionalLight(0xffffff, 1.0);
 
@@ -410,9 +416,9 @@ let _createPlane = (localPosition, localEulerAnglesOpt, widthOpt, heightOpt, spe
     var roughness = roughnessOpt !== undefined ? roughnessOpt : 0.0;
     var transmission = transmissionOpt !== undefined ? transmissionOpt : 0.0;
     var diffuse = diffuseOpt !== undefined ? diffuseOpt : [
-        0.0,
-        0.0,
-        0.0
+        1.0,
+        1.0,
+        1.0
     ];
     var diffuseMapImageIdOpt = diffuseMapImageIdOptOpt !== undefined ? (diffuseMapImageIdOptOpt) : undefined;
     var normalMapImageIdOpt = normalMapImageIdOptOpt !== undefined ? (normalMapImageIdOptOpt) : undefined;
@@ -1229,9 +1235,15 @@ let _setAllDp = (scene) => {
         },
         bsdfMaterialRepo: {
             getDiffuseColor: (material) => {
-                let [r, g, b] = _getFromColor(material.color);
+                let [r, g, b] = _getFromColor(material.color === undefined ? new THREE.Color(0.0, 0.0, 0.0) : material.color);
                 let result = [r, g, b, material.opacity];
                 _logMaterialData("getDiffuseColor:", result);
+                return result;
+            },
+            getEmissionColor: (material) => {
+                let result = _getFromColor(material.emissive === undefined ? new THREE.Color(0.0, 0.0, 0.0) : material.emissive);
+
+                _logMaterialData("getEmissionColor:", result);
                 return result;
             },
             getSpecular: (material) => {
@@ -1844,24 +1856,24 @@ let _loadGLTFModel = () => {
             ],
             getCameraTargetFunc: boxSize => [0, 0, 0]
         },
-        my_little_pony_dream_house: {
-            modelDirPath: "../asset/my_little_pony_dream_house/",
-            modelName: "scene.gltf",
-            directionLightPosition: [0, 1, -1.0],
-            getCameraPositionFunc: boxSize => [
-                0, boxSize.y / 2, -boxSize.z / 2 * 3
-            ],
-            getCameraTargetFunc: boxSize => [0, 0, 0]
-        },
-        lamborghini: {
-            modelDirPath: "../asset/lamborghini/",
-            modelName: "scene.gltf",
-            directionLightPosition: [0, 1, 1.0],
-            getCameraPositionFunc: boxSize => [
-                0, boxSize.y / 2 * 2, boxSize.z / 2 * 6
-            ],
-            getCameraTargetFunc: boxSize => [0, 0, 0]
-        },
+        // my_little_pony_dream_house: {
+        //     modelDirPath: "../asset/my_little_pony_dream_house/",
+        //     modelName: "scene.gltf",
+        //     directionLightPosition: [0, 1, -1.0],
+        //     getCameraPositionFunc: boxSize => [
+        //         0, boxSize.y / 2, -boxSize.z / 2 * 3
+        //     ],
+        //     getCameraTargetFunc: boxSize => [0, 0, 0]
+        // },
+        // lamborghini: {
+        //     modelDirPath: "../asset/lamborghini/",
+        //     modelName: "scene.gltf",
+        //     directionLightPosition: [0, 1, 1.0],
+        //     getCameraPositionFunc: boxSize => [
+        //         0, boxSize.y / 2 * 2, boxSize.z / 2 * 2
+        //     ],
+        //     getCameraTargetFunc: boxSize => [0, 0, 0]
+        // },
         room1: {
             modelDirPath: "../asset/room1/",
             modelName: "scene.gltf",
@@ -1872,8 +1884,18 @@ let _loadGLTFModel = () => {
             getCameraTargetFunc: boxSize =>
                 [0.57, -0.25, -0.78]
         },
-        room2: {
-            modelDirPath: "../asset/room2/",
+        outdoor1: {
+            modelDirPath: "../asset/outdoor1/",
+            modelName: "scene.gltf",
+            directionLightPosition: [0, 1, -1.0],
+            cameraQuaternion: [-0.0856, 0.8399, 0.1496, 0.5146],
+            getCameraPositionFunc: boxSize => [
+                838.504, 45.749, -610.242
+            ],
+            getCameraTargetFunc: boxSize => undefined,
+        },
+        outdoor2: {
+            modelDirPath: "../asset/outdoor2/",
             modelName: "scene.gltf",
             modelScale: 0.00001,
             directionLightPosition: [0, 1, 1.0],
@@ -1883,19 +1905,8 @@ let _loadGLTFModel = () => {
             ],
             getCameraTargetFunc: boxSize => undefined,
         },
-        appartment_vr: {
-            modelDirPath: "../asset/appartment_vr/",
-            modelName: "scene.gltf",
-            directionLightPosition: [0, 1, -1.0],
-            getCameraPositionFunc: boxSize => [
-                823.71, 25.49, -632.46
-            ],
-            getCameraTargetFunc: boxSize => [
-                -0.79, -0.02, 0.608
-            ]
-        },
         // TODO need check: this model cause run fail!why???
-        // furniture:{
+        // furniture: {
         //     modelDirPath: "../asset/",
         //     modelName: "92b2b5da-1b6b-43ae-b496-e39119a1769c.glb",
         //     directionLightPosition: [0, 1, -1.0],
@@ -1905,74 +1916,71 @@ let _loadGLTFModel = () => {
         //         2.122
         //     ],
         //     getCameraTargetFunc: boxSize => [
-        //         -0.621,-0.648,
+        //         -0.621, -0.648,
         //         -0.439
         //     ]
         // },
-        motorcycle: {
-            modelDirPath: "../asset/",
-            modelName: "c8556e38-643e-467c-94ec-19f6602f51f0.glb",
-            directionLightPosition: [0, 1, 1.0],
-            getCameraPositionFunc: boxSize => [
-                1.07,
-                8.974,
-                9.59
-            ],
-            getCameraTargetFunc: boxSize => [
-                -0.08,
-                -0.67,
-                -0.73
-            ]
-        },
-
-        cube: {
-            modelDirPath: "../asset/",
-            modelName: "正方形.gltf",
-            directionLightPosition: [0, 1.0, 0.1],
-            getCameraPositionFunc: boxSize => [
-                0, boxSize.y / 2 * 2, boxSize.z / 2 * 4
-            ],
-            getCameraTargetFunc: boxSize => [0, 0, 0]
-        },
-        test1: {
-            modelDirPath: "../asset/",
-            modelName: "几何体11.gltf",
-            directionLightPosition: [0, 1.0, 1.0],
-            getCameraPositionFunc: boxSize => [
-                0, boxSize.y / 2 * 8, boxSize.z / 2 / 2
-            ],
-            getCameraTargetFunc: boxSize => [0, 0, 0]
-        },
-        test2: {
-            modelDirPath: "../asset/",
-            modelName: "几何体2.gltf",
-            directionLightPosition: [0, 1.0, 1.0],
-            getCameraPositionFunc: boxSize => [
-                - boxSize.x / 2, boxSize.y / 2 * 4, boxSize.z / 2 * 2
-            ],
-            getCameraTargetFunc: boxSize => [0, 0, 0]
-        },
-        woodDesk: {
-            modelDirPath: "../asset/",
-            modelName: "木桌.gltf",
-            directionLightPosition: [0, 1.0, 1.0],
-            getCameraPositionFunc: boxSize => [
-                - boxSize.x / 2, boxSize.y / 2 * 4, boxSize.z / 2 * 2
-            ],
-            getCameraTargetFunc: boxSize => [0, 0, 0]
-        },
-
+        // motorcycle: {
+        //     modelDirPath: "../asset/",
+        //     modelName: "c8556e38-643e-467c-94ec-19f6602f51f0.glb",
+        //     directionLightPosition: [0, 1, 1.0],
+        //     getCameraPositionFunc: boxSize => [
+        //         1.07,
+        //         8.974,
+        //         9.59
+        //     ],
+        //     getCameraTargetFunc: boxSize => [
+        //         -0.08,
+        //         -0.67,
+        //         -0.73
+        //     ]
+        // },
+        // cube: {
+        //     modelDirPath: "../asset/",
+        //     modelName: "正方形.gltf",
+        //     directionLightPosition: [0, 1.0, 0.1],
+        //     getCameraPositionFunc: boxSize => [
+        //         0, boxSize.y / 2 * 2, boxSize.z / 2 * 4
+        //     ],
+        //     getCameraTargetFunc: boxSize => [0, 0, 0]
+        // },
+        // test1: {
+        //     modelDirPath: "../asset/",
+        //     modelName: "几何体11.gltf",
+        //     directionLightPosition: [0, 1.0, 1.0],
+        //     getCameraPositionFunc: boxSize => [
+        //         0, boxSize.y / 2 * 8, boxSize.z / 2 / 2
+        //     ],
+        //     getCameraTargetFunc: boxSize => [0, 0, 0]
+        // },
+        // test2: {
+        //     modelDirPath: "../asset/",
+        //     modelName: "几何体2.gltf",
+        //     directionLightPosition: [0, 1.0, 1.0],
+        //     getCameraPositionFunc: boxSize => [
+        //         - boxSize.x / 2, boxSize.y / 2 * 4, boxSize.z / 2 * 2
+        //     ],
+        //     getCameraTargetFunc: boxSize => [0, 0, 0]
+        // },
+        // woodDesk: {
+        //     modelDirPath: "../asset/",
+        //     modelName: "木桌.gltf",
+        //     directionLightPosition: [0, 1.0, 1.0],
+        //     getCameraPositionFunc: boxSize => [
+        //         - boxSize.x / 2, boxSize.y / 2 * 4, boxSize.z / 2 * 2
+        //     ],
+        //     getCameraTargetFunc: boxSize => [0, 0, 0]
+        // },
     };
 
     return _loadGLTF(
-        // gltfModelData.room
         // gltfModelData.my_little_pony_dream_house
         // gltfModelData.lamborghini
         // gltfModelData.DamagedHelmet
-        // gltfModelData.appartment_vr
+        // gltfModelData.outdoor1
 
         gltfModelData.room1
-        // gltfModelData.room2
+        // gltfModelData.outdoor2
 
         // gltfModelData.furniture
         // gltfModelData.motorcycle
@@ -1984,6 +1992,29 @@ let _loadGLTFModel = () => {
     );
 };
 
+let _isMaterialTransparent = (material) => {
+    return material.transparent;
+};
+
+let _setMaterialEmissionToZeroIfTransparent = (scene) => {
+    scene.traverse(function (object) {
+        if (!object.material) {
+            return;
+        }
+
+        let material = object.material;
+
+        if (_isMaterialTransparent(material)) {
+            _warn("set emission to zero!");
+
+            material.emissive = new THREE.Color(0.0, 0.0, 0.0);
+        }
+
+        object.material = material;
+    });
+
+    return scene;
+};
 
 async function _main() {
     // let [camera, scene] = _buildScene1();
@@ -1992,6 +2023,8 @@ async function _main() {
     let [camera, scene] = await _loadGLTFModel();
 
     scene = _convertSceneAllGeometries(scene);
+
+    scene = _setMaterialEmissionToZeroIfTransparent(scene);
 
     _setAllDp(scene);
 
