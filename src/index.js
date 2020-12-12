@@ -4,7 +4,7 @@ var perf_hooks = require("perf_hooks");
 
 var wonderWebgpu = require("wonder-webgpu");
 
-// var THREE = require("./three/three.wonder.js");
+// var THREE = require("./three/three.wonder-rtx-pathtracer");
 
 
 global.self = global;
@@ -134,15 +134,15 @@ global.THREE = THREE;
 require("./three/GLTFLoader.js");
 require("./three/BufferGeometryUtils");
 
-var { set: setConfigDp } = require("wonder.js/lib/js/src/run/external_layer/api/dependency/ConfigDpCPAPI.bs.js");
-var { set: setSceneGraphRepoDp } = require("wonder.js/lib/js/src/run/external_layer/api/dependency/SceneGraphRepoDpCPAPI.bs.js");
-var { set: setImageRepoDp } = require("wonder.js/lib/js/src/run/external_layer/api/dependency/ImageRepoDpCPAPI.bs.js");
-var { set: setWebGPUCoreDp } = require("wonder.js/lib/js/src/run/external_layer/api/dependency/WebGPUCoreDpCPAPI.bs.js");
-var { set: setWebGPURayTracingDp } = require("wonder.js/lib/js/src/run/external_layer/api/dependency/WebGPURayTracingDpCPAPI.bs.js");
-var { set: setTimeDp } = require("wonder.js/lib/js/src/run/external_layer/api/dependency/TimeDpCPAPI.bs.js");
-var { set: setConfigDp } = require("wonder.js/lib/js/src/run/external_layer/api/dependency/ConfigDpCPAPI.bs.js");
-var { prepare, init, update, render } = require("wonder.js/lib/js/src/run/external_layer/api/DirectorCPAPI.bs.js");
-var { setTextureArrayLayerSize } = require("wonder.js/lib/js/src/run/external_layer/api/WebGPUCPAPI.bs.js");
+var { set: setConfigDp } = require("wonder-rtx-pathtracer/lib/js/src/external_layer/api/dependency/ConfigDpCPAPI.bs.js");
+var { set: setSceneGraphRepoDp } = require("wonder-rtx-pathtracer/lib/js/src/external_layer/api/dependency/SceneGraphRepoDpCPAPI.bs.js");
+var { set: setImageRepoDp } = require("wonder-rtx-pathtracer/lib/js/src/external_layer/api/dependency/ImageRepoDpCPAPI.bs.js");
+var { set: setWebGPUCoreDp } = require("wonder-rtx-pathtracer/lib/js/src/external_layer/api/dependency/WebGPUCoreDpCPAPI.bs.js");
+var { set: setWebGPURayTracingDp } = require("wonder-rtx-pathtracer/lib/js/src/external_layer/api/dependency/WebGPURayTracingDpCPAPI.bs.js");
+var { set: setTimeDp } = require("wonder-rtx-pathtracer/lib/js/src/external_layer/api/dependency/TimeDpCPAPI.bs.js");
+var { set: setConfigDp } = require("wonder-rtx-pathtracer/lib/js/src/external_layer/api/dependency/ConfigDpCPAPI.bs.js");
+var { prepare, init, update, render } = require("wonder-rtx-pathtracer/lib/js/src/external_layer/api/DirectorCPAPI.bs.js");
+var { setTextureArrayLayerSize } = require("wonder-rtx-pathtracer/lib/js/src/external_layer/api/WebGPUCPAPI.bs.js");
 
 
 
@@ -1636,7 +1636,7 @@ let _setAllDp = (scene) => {
             })
         },
         loadGLSL: (function (srcPath) {
-            return _loadShaderFile("./node_modules/wonder.js/" + srcPath);
+            return _loadShaderFile("./node_modules/wonder-rtx-pathtracer/" + srcPath);
         }),
         capacity: {
             // getTextureArrayLayerSize: (function (param) {
